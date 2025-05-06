@@ -1,0 +1,96 @@
+{
+    "embeds": [
+        {
+            "id": "embed_34",
+            "type": "rich",
+            "rawTitle": "**FILIA - 5LP**",
+            "contentScanVersion": 1,
+            "footer": {
+                "text": "- Also see \"5LP x2\"\n- Filia's fastest normal. Tied for the fastest jab in the game with Ms. Fortune."
+            },
+            "color": "hsla(266, calc(var(--saturation-factor, 1) * 21.6%), 29%, 1)",
+            "thumbnail": {
+                "url": "https://wiki.gbl.gg/images/3/35/SG_fil_slp_hb.png",
+                "proxyURL": "https://images-ext-1.discordapp.net/external/WyHMsqMdJBmeUW0dRS6V_CollHjsYy6NqVNdOwawjSk/https/wiki.gbl.gg/images/3/35/SG_fil_slp_hb.png",
+                "width": 512,
+                "height": 900,
+                "placeholder": "BOgFBAQHeIh3eIcoeIevkXafdw==",
+                "placeholderVersion": 1,
+                "srcIsAnimated": false,
+                "flags": 0
+            },
+            "image": {
+                "url": "https://wiki.gbl.gg/images/c/cf/SG_fil_slp1_fd.png",
+                "proxyURL": "https://images-ext-1.discordapp.net/external/anQkT9yThWOn-aHkFlgCVnYb4CyESlrVB7kuQ2mWQZk/https/wiki.gbl.gg/images/c/cf/SG_fil_slp1_fd.png",
+                "width": 144,
+                "height": 42,
+                "placeholder": "oAmFAYQS/u90iFoEnOd6+YmIi3dxB3g=",
+                "placeholderVersion": 1,
+                "srcIsAnimated": false,
+                "flags": 0
+            },
+            "fields": [
+                {
+                    "rawName": "**Guard**",
+                    "rawValue": "Mid",
+                    "inline": true
+                },
+                {
+                    "rawName": "**Damage**",
+                    "rawValue": "300",
+                    "inline": true
+                },
+                {
+                    "rawName": "**Properties**",
+                    "rawValue": "Chains Into Self",
+                    "inline": true
+                },
+                {
+                    "rawName": "**Meter**",
+                    "rawValue": "2.50%",
+                    "inline": true
+                },
+                {
+                    "rawName": "**On Hit**",
+                    "rawValue": "±0",
+                    "inline": true
+                },
+                {
+                    "rawName": "**On Block**",
+                    "rawValue": "+3",
+                    "inline": true
+                },
+                {
+                    "rawName": "**Startup**",
+                    "rawValue": "5",
+                    "inline": true
+                },
+                {
+                    "rawName": "**Active**",
+                    "rawValue": "3",
+                    "inline": true
+                },
+                {
+                    "rawName": "**Recovery**",
+                    "rawValue": "14",
+                    "inline": true
+                },
+                {
+                    "rawName": "**Hitstun**",
+                    "rawValue": "16",
+                    "inline": true
+                },
+                {
+                    "rawName": "**Blockstun**",
+                    "rawValue": "19",
+                    "inline": true
+                },
+                {
+                    "rawName": "**Hitstop**",
+                    "rawValue": "7",
+                    "inline": true
+                }
+            ]
+        }
+    ]
+}
