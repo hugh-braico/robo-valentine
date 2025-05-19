@@ -1,0 +1,7 @@
+config.json
+service-account.json
+node_modules
+*.js
+!ecosystem.config.js
+error.log
+combined.log

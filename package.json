@@ -1,0 +1,43 @@
+{
+  "name": "robo-valentine",
+  "version": "1.0.0",
+  "description": "Discord bot for Skullgirls frame data",
+  "main": "index.js",
+  "type": "module",
+  "directories": {
+    "example": "examples"
+  },
+  "scripts": {
+    "dev": "tsc && node --require=suppress-experimental-warnings .",
+    "deploy-commands": "tsc && node --require=suppress-experimental-warnings utils/deploy-commands.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hugh-braico/robo-valentine.git"
+  },
+  "author": "SeaJay",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/hugh-braico/robo-valentine/issues"
+  },
+  "homepage": "https://github.com/hugh-braico/robo-valentine#readme",
+  "dependencies": {
+    "discord.js": "^14.19.3",
+    "fuse.js": "^7.1.0",
+    "glob": "^11.0.2",
+    "google-auth-library": "^8.8.0",
+    "google-spreadsheet": "^4.1.4",
+    "pm2": "^6.0.8",
+    "sequelize": "^6.37.7",
+    "sqlite3": "^5.1.7",
+    "suppress-experimental-warnings": "^2.0.0",
+    "winston": "^3.17.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.27.0",
+    "eslint": "^9.27.0",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.32.1"
+  }
+}

@@ -1,0 +1,10 @@
+{
+    "compilerOptions": {
+      "module": "NodeNext",
+      "noImplicitAny": true,
+      "preserveConstEnums": true,
+      "moduleResolution": "nodenext",
+      "resolveJsonModule": true,
+      "skipLibCheck": true
+    }
+  }
