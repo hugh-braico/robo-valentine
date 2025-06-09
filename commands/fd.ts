@@ -157,14 +157,24 @@ function buildEmbed (characterName: string, colour: `#{string}`, move: Move): Em
         "inline": true
     } as APIEmbedField));
 
-	const builder: EmbedBuilder =  new EmbedBuilder()
+    const builder: EmbedBuilder =  new EmbedBuilder()
         .setColor(colour as `#{string}`)
         .setTitle(`**${characterName} - ${move.get('Move Name') as string}**`)
-        .setThumbnail(`${move.get('Thumbnail URL') as string}`)
-        .setImage(`${move.get('Footer URL') as string}`)
-        .addFields(fieldsArray)
+        .addFields(fieldsArray);
 
-    // It gets confused by footers that are empty string - don't add them
+    // Don't add a footer image if there isn't one defined
+    const footerURL: string = move.get('Footer URL') as string;
+    if (footerURL.length > 0 && footerURL !== '-' && isValidHttpUrl(footerURL)) {
+        builder.setImage(footerURL);
+    }
+
+    // Don't add a thumbnail image if there isn't one defined
+    const thumbnailURL: string = move.get('Thumbnail URL') as string;
+    if (thumbnailURL.length > 0 && thumbnailURL !== '-' && isValidHttpUrl(thumbnailURL)) {
+        builder.setThumbnail(thumbnailURL);
+    }
+
+    // Don't add empty footer text
     const footer: string = move.get('Footer') as string;
     if (footer.length > 0) {
         builder.setFooter({ text: footer })
@@ -173,3 +183,13 @@ function buildEmbed (characterName: string, colour: `#{string}`, move: Move): Em
     return builder;
 };
 
+function isValidHttpUrl(s: string): boolean {
+    let url;
+    try {
+      url = new URL(s);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (err) {
+      return false;  
+    }
+    return url.protocol === "http:" || url.protocol === "https:";
+}
