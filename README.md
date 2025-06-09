@@ -1,13 +1,11 @@
-# Robo-Valentine
-
-![A portrait of a robot Valentine from Skullgirls.](./images/robo-valentine.png)
+# Robo-Valentine 💉
 
 [![icons](https://skillicons.dev/icons?i=js,ts,discordjs,gcp,aws)](https://skillicons.dev)
 
 Discord bot for quickly getting Skullgirls frame data. 100% blind rewrite and
 hopeful successor to Liam's Robo-Fortune bot (aka FDBot).
 
-Written in TypeScript with discord.js.
+Written in TypeScript with discord.js. Currently hosted on Amazon Lightsail.
 
 ## How to add to your server
 
@@ -26,7 +24,9 @@ e.g.
 /fd character:Filia move:5LP
 ```
 
-The above invocation should yield the frame data for Filia's 5LP.
+The above should yield the frame data for Filia's 5LP:
+
+![Embedded Discord message of frame data for Filia's 5LP.](./images/example_invocation.png)
 
 ## Where is the data hosted?
 
@@ -52,7 +52,7 @@ Google Sheet and load it into the bot's local cache for quick retrieval. If
 you're an approved maintainer (contact SeaJay), you can use the command in
 Discord to fetch new data.
 
-## How to host and run the bot yourself on your own machine
+## Dev setup
 
 You'll need git, NodeJS, and npm. I'm using node `24.1.0`, so try to use the
 same version especially if you're encountering any weird errors.
@@ -100,11 +100,29 @@ Run the bot:
 npm run dev
 ```
 
+## Production setup
+
+For production hosting, keep in mind that the database is less than 1 MB and
+all the bot really does is present it in a user friendly way. The smallest
+Lightsail or Heroku instance (etc) is perfectly fine.
+
+The host I'm using at the moment is the smallest Amazon Lightsail instance -
+512MB RAM, 2 vCPU, 20GB SSD, and the Bitnami Node.js prebuilt image.
+
 To run a persistent session on a hosted server, where you want the process to
-continue and never hang up, and log to a file, consider something like:
+continue after you close the session:
 
 ```shell
+# (follow instructions in "Dev setup" to clone repo, set up credentials)
+
+# install dependencies
+npm ci
+
+# start tmux session
+# if you don't have tmux, sudo apt install tmux (or equivalent)
 tmux
+
+# start app inside tmux (will deploy commands first, then run app)
 ./start.sh
 # (CTRL+B, D to get out of the tmux session)
 ```
@@ -113,6 +131,7 @@ Then later you can check on it with
 
 ```shell
 tmux attach
+# (CTRL+B, D to get out of the tmux session)
 ```
 
 ## Using your own Google Sheet
@@ -128,24 +147,3 @@ tmux attach
 
 After that, your instance of the bot should be able to download new data using
 the `/download` slash command.
-
-## TODO list
-
-- ✅ Basic bot that responds to slash commands
-- ✅ Dummy embed that is formatted correctly in response to a slash command
-- ✅ Split every character's data into their own sheet
-- ✅ `/download` using Google Sheets API to store to in-memory database
-  - ✅ Only allow an approved list of maintainers to run it
-  - ✅ Format checking
-  - ✅ Duplicate character, macro, move, and alias checking
-  - ✅ Error reporting in the discord reply
-  - ✅ Preserve old database state with any error by using transactions
-- ✅ Basic query parsing for !fd command, db retrieval, embed output
-- ✅ Simple alias support
-- ✅ Rudimentary support for query error reporting
-- ✅ MACRO_ support
-- ✅ Fuzzy match support on simple aliases after other methods have failed
-- ✅ Production hosting
-- ✅ Public bot access (make github public, and announce)
-- ✅ Get /fd options dynamically from the sheet rather than hard coding them
-- ✅ Regex support (use `/alias/` to format an alias as regex)
