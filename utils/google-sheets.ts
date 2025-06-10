@@ -61,6 +61,7 @@ export async function loadData(): Promise<void> {
         await Macro.sync({ force: true });
         await Move.sync({ force: true });
         await SimpleAlias.sync({ force: true });
+        await RegexAlias.sync({ force: true });
 
         // load new data
         await loadCharacters();
