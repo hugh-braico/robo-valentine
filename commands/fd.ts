@@ -20,9 +20,23 @@ export const data = new SlashCommandBuilder()
             .setDescription('The name of the move (e.g. 2LK, H Hairball)')
             .setRequired(true));
 
+// Sanitise inputs and outputs to prevent naughty stuff from happening
+function sanitise(s: string): string {
+    //  \w  is a-z, A-Z, and 0-9. Also matches underscore but whatever
+    //  \s  is spaces
+    //  []  is used for charge moves
+    //  .   is used in e.g. `5.LP`
+    //  -   is used in e.g. `MERRY-GO-RILLA`
+    //  ,   is used in taunt inputs and in some random names
+    //  '   is used in e.g. `LOCK 'N' LOAD`
+    //  +   is unfortunately used a lot in e.g. `236+PP`
+    //  ~   is used in some command run stuff e.g. `[4]6+K~LK`
+    return s.replace(/[^\w\s[\].\-,'+~]/gi, '');
+}
+
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
-    const characterName = interaction.options.getString("character");
-    const moveName = interaction.options.getString("move").toUpperCase().trim();
+    const characterName = sanitise(interaction.options.getString("character"));
+    const moveName = sanitise(interaction.options.getString("move").toUpperCase().trim());
     let fuzzyMatchedAnswer = false;
     
     console.log(`Begin fetch for ${characterName} - ${moveName}...`)
