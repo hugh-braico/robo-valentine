@@ -1,7 +1,8 @@
-import { ChatInputCommandInteraction, SlashCommandBuilder, EmbedBuilder, APIEmbedField } from "discord.js";
+import { Client, ChatInputCommandInteraction, SlashCommandBuilder, EmbedBuilder, APIEmbedField, TextChannel, User, Guild, Message } from "discord.js";
 import { Character, Move, RegexAlias, SimpleAlias } from '../utils/database-tables.js';
 import Fuse, { FuseResult } from 'fuse.js';
 import { generateFdOptions } from "../utils/generate-fd-options.js";
+import config from '../config/config.json' with { type: "json" };
 
 // Instead of hard-coding the options for the fd command,
 // it makes more sense to treat the google sheet as the source of truth
@@ -34,15 +35,15 @@ function sanitise(s: string): string {
     return s.replace(/[^\w\s[\].\-,'+~]/gi, '');
 }
 
-export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
+export async function execute(interaction: ChatInputCommandInteraction, client: Client): Promise<void> {
     const characterName = sanitise(interaction.options.getString("character"));
     const moveName = sanitise(interaction.options.getString("move").toUpperCase().trim());
     let fuzzyMatchedAnswer = false;
     
-    console.log(`Begin fetch for ${characterName} - ${moveName}...`)
+    console.log(`Begin fetch for ${characterName} - ${moveName}...`);
 
     // Find the character's colour data
-    console.log("  Getting character from db...")
+    console.log("  Getting character from db...");
     const character: Character = await Character.findByPk(characterName);
     if (character == null) {
         await interaction.reply(`❗ Couldn't find the character "${characterName}! I don't even know how you managed to do that. Please contact a maintainer to investigate.`);
@@ -52,7 +53,10 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     // Do a lookup on the aliases table to get this move's canonical name
     let canonicalName: string;
 
-    console.log("  Getting alias from db...")
+    // Hold onto a summary of how we got to the correct answer for logging purposes
+    let resultString = "";
+
+    console.log("  Getting alias from db...");
     const simpleAlias: SimpleAlias = await SimpleAlias.findOne({
         where: {
             Character: characterName,
@@ -63,10 +67,11 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     if (simpleAlias === null) {
         // Haven't found the canonical name for this move yet
         canonicalName = null;
-        console.log(`    No simple alias match for ${moveName}.`)
+        console.log(`    No simple alias match for ${moveName}.`);
     } else {
         canonicalName = simpleAlias.get('Move Name') as string;
-        console.log(`    Simple alias match for ${moveName} -> ${canonicalName}.`)
+        resultString = `✅ Simple alias match for ${moveName} -> ${canonicalName}.`;
+        console.log(`    ${resultString}`);
     }
 
     // If simple strategy fails, try regex strategy
@@ -91,9 +96,10 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         const matchingRegex: RegexAlias = regexAliases.find((r) => checkRegex(r, moveName));
         if (matchingRegex != undefined) {
             canonicalName = matchingRegex.get('Move Name') as string;
-            console.log(`    Regex alias match for ${moveName} -> ${canonicalName} via /${matchingRegex.get('Pattern')}/.`)
+            resultString = `✅ Regex alias match for ${moveName} -> ${canonicalName} via /${matchingRegex.get('Pattern')}/.`;
+            console.log(`    ${resultString}`);
         } else { 
-            console.log(`    No regex alias match for ${moveName}.`)
+            console.log(`    No regex alias match for ${moveName}.`);
         }
     }
 
@@ -121,20 +127,24 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         if (results.length > 0) {
             fuzzyMatchedAnswer = true;
             canonicalName = results[0].item.get('Move Name') as string;
-            console.log(`    Fuzzy alias match for ${moveName} -> ${results[0].item.get('Alias')} -> ${canonicalName}.`)
+            resultString = `✅ Fuzzy alias match for ${moveName} -> ${results[0].item.get('Alias')} -> ${canonicalName}.`
+            console.log(`    ${resultString}`);
         } else {
-            console.log(`    No fuzzy alias match for ${moveName}.`)
+            console.log(`    No fuzzy alias match for ${moveName}.`);
         }
     }
 
     // If all 3 strategies fail, give up! Hit da bricks!
     if (canonicalName === null || canonicalName.length === 0) {
         await interaction.reply(`❗ Couldn't find the move "${moveName}" for the character "${characterName}!"`);
+        resultString = "❌ No match via any strategy!";
+        console.log(`    ${resultString}`);
+        await logResultToChannel(interaction, client, resultString);
         return;
     }
 
     // If we got this far we found the canonical name. Lookup the move in the database
-    console.log(`  Getting move ${canonicalName} from db...`)
+    console.log(`  Getting move ${canonicalName} from db...`);
     const move: Move = await Move.findOne({
         where: {
             Character: characterName,
@@ -146,7 +156,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
         return;
     }
 
-    console.log("Done.")
+    console.log("Done.");
 
     // If we had to resort to fuzzy matching, tell the user we did that
     if (fuzzyMatchedAnswer) {
@@ -157,6 +167,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     } else {
         await interaction.reply({embeds: [buildEmbed(character.get('Pretty Name') as string, character.get('Colour') as `#{string}`, move)]});
     }
+    await logResultToChannel(interaction, client, resultString);
 };
 
 function buildEmbed (characterName: string, colour: `#{string}`, move: Move): EmbedBuilder {
@@ -191,7 +202,7 @@ function buildEmbed (characterName: string, colour: `#{string}`, move: Move): Em
     // Don't add empty footer text
     const footer: string = move.get('Footer') as string;
     if (footer.length > 0) {
-        builder.setFooter({ text: footer })
+        builder.setFooter({ text: footer });
     }
 
     return builder;
@@ -206,4 +217,28 @@ function isValidHttpUrl(s: string): boolean {
       return false;  
     }
     return url.protocol === "http:" || url.protocol === "https:";
+}
+
+// Gather up all the background info about a /fd command invocation for logging purposes
+async function logResultToChannel(interaction: ChatInputCommandInteraction, client: Client, result: string): Promise<void> {
+    const logChannelId = config["activity-channel-id"] as string;
+    if (logChannelId != null && logChannelId.length > 0) {
+        let debugString = "";
+
+        const guild: Guild = interaction.guild;
+        const reply: Message = await interaction.fetchReply();
+        const replyUrl: string = reply.url;
+        debugString += `From server ${guild.name} (${replyUrl}):\n`;
+
+        const user: User = interaction.user;
+        debugString += `Invoked by user \`${user.username}\`\n`;
+
+        const characterName = interaction.options.getString("character");
+        const moveName = interaction.options.getString("move").trim();
+        debugString += `\`/fd ${characterName} ${moveName}\`\n`;
+
+        debugString += `Result: ${result}`;
+        const logChannel: TextChannel = client.channels.cache.get(logChannelId) as TextChannel;
+        logChannel.send(debugString);
+    }
 }

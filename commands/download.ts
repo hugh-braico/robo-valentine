@@ -1,4 +1,4 @@
-import { CommandInteraction, SlashCommandBuilder } from "discord.js";
+import { Client, CommandInteraction, SlashCommandBuilder } from "discord.js";
 import config from '../config/config.json' with { type: "json" };
 import { loadData } from '../utils/google-sheets.js';
 
@@ -6,7 +6,8 @@ export const data = new SlashCommandBuilder()
     .setName('download')
     .setDescription('Refresh Robo-Valentine data (Only a maintainer can use this)');
 
-export async function execute(interaction: CommandInteraction): Promise<void> {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function execute(interaction: CommandInteraction, client: Client): Promise<void> {
     if (config["approved-maintainers"].includes(interaction.user.id)) {
         await interaction.reply("🔄 Downloading new data...");
         try {

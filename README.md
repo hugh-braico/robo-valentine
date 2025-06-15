@@ -78,6 +78,10 @@ Add your own Discord user account's ID to the `approved-maintainers` array in
 `config/config.json`. This just lets your user account call the `/download`
 command.
 
+You can optionally fill in the `activity-channel-id` with the ID of a channel
+that Robo-Valentine has access to, and it will dump activity messages there.
+Same for the `error-channel-id` which will get dumps with exceptions/errors.
+
 Create a Google service account to authenticate against Sheets - follow
 [this guide](https://theoephraim.github.io/node-google-spreadsheet/#/guides/authentication).
 

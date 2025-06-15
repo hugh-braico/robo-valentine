@@ -4,10 +4,11 @@ import config from './config/config.json' with { type: "json" };
 import { glob } from 'glob';
 import { initDatabase } from './utils/database-tables.js';
 import { initGoogleSheet, loadData } from './utils/google-sheets.js';
+import { logErrorToChannel } from './utils/log-error-to-channel.js';
 
 interface RoboValCommand { 
 	data: SlashCommandBuilder;
-	execute(interaction: CommandInteraction): Promise<void>;
+	execute(interaction: CommandInteraction, client: Client): Promise<void>;
 }
 
 // Convenient to extend client to contain a map of command names to command objects.
@@ -58,14 +59,15 @@ client.on(Events.InteractionCreate, async interaction => {
 		return;
 	}
 	try {
-		await command.execute(interaction);
+		await command.execute(interaction, client);
 	} catch (error) {
 		console.error(error);
 		if (interaction.replied || interaction.deferred) {
 			await interaction.followUp({ content: 'There was an error while executing this command!', flags: MessageFlags.Ephemeral });
 		} else {
-			await interaction.reply({ content: 'There was an error while executing this command!', flags: MessageFlags.Ephemeral });
+			await interaction.reply({ content: 'There was an error while executing this command! Please contact a maintainer to fix it.' });
 		}
+		await logErrorToChannel(interaction, client, error as string);
 	}
 });
 
@@ -77,4 +79,3 @@ client.once(Events.ClientReady, readyClient => {
 // Log in to Discord with client token
 console.log(`\nLogging in to Discord...`);
 client.login(config.token);
-
