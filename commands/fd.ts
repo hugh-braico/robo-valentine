@@ -223,7 +223,8 @@ function isValidHttpUrl(s: string): boolean {
 async function logResultToChannel(interaction: ChatInputCommandInteraction, client: Client, result: string): Promise<void> {
     const logChannelId = config["activity-channel-id"] as string;
     if (logChannelId != null && logChannelId.length > 0) {
-        let debugString = "";
+        // horizontal line separator before every new message
+        let debugString = "~~                                                                                                                                        ~~\n";
 
         const guild: Guild = interaction.guild;
         const reply: Message = await interaction.fetchReply();

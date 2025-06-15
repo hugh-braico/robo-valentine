@@ -5,7 +5,8 @@ import config from '../config/config.json' with { type: "json" };
 export async function logErrorToChannel(interaction: ChatInputCommandInteraction, client: Client, error: string): Promise<void> {
     const logChannelId = config["error-channel-id"] as string;
     if (logChannelId != null && logChannelId.length > 0) {
-        let debugString = "";
+        // horizontal line separator before every new message
+        let debugString = "~~                                                                                                                                        ~~\n";
 
         const guild: Guild = interaction.guild;
         const reply: Message = await interaction.fetchReply();
