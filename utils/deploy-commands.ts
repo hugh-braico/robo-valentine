@@ -24,12 +24,9 @@ console.log("Data loaded.\n");
 
 // Dynamically grab all command files and map their command names to their execute functions
 const commandModulePaths: string[] = await glob('commands/*.js');
-// console.log(`Found command modules ${commandModulePaths}`)
 for (const modulePath of commandModulePaths) {
 	console.log(`Importing module ${modulePath}`);
-	// TODO this may be Windows-specific, may have to add else-if behaviour to work on unix
 	const fullModulePath = "file://" + path.resolve(modulePath);
-	// console.log(`Resolving full path as ${fullModulePath}`);
 	const command = await import(fullModulePath);
     if ('data' in command && 'execute' in command) {
         commands.push(command.data.toJSON());
@@ -56,7 +53,7 @@ class PutResponse {
 			{ body: [] },
 		) as PutResponse;
 
-		// The put method is used to fully refresh all commands
+		// Publish all commands
 		const data = await rest.put(
 			Routes.applicationCommands(clientId),
 			{ body: commands },
@@ -65,7 +62,6 @@ class PutResponse {
 		console.log(`Successfully reloaded ${data.length} application (/) commands.`);
 
 	} catch (error) {
-		// And of course, make sure you catch and log any errors!
 		console.error(error);
 	}
 })();

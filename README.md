@@ -126,8 +126,11 @@ npm ci
 # if you don't have tmux, sudo apt install tmux (or equivalent)
 tmux
 
-# start app inside tmux (will deploy commands first, then run app)
-./start.sh
+# deploy commands (not needed if you've done this before from dev)
+npm run deploy-commands
+
+# start app inside tmux (yeah, it says dev, but the setup is the same)
+npm run dev
 # (CTRL+B, D to get out of the tmux session)
 ```
 
@@ -135,7 +138,11 @@ Then later you can check on it with
 
 ```shell
 tmux attach
-# (CTRL+B, D to get out of the tmux session)
+# CTRL+B, [ to enter scroll mode so you can scroll up in the log
+
+# Q to exit scroll mode
+
+# CTRL+B, D to get out of the tmux session
 ```
 
 ## Using your own Google Sheet
