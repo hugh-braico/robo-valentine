@@ -6,8 +6,6 @@ export const data = new SlashCommandBuilder()
     .setName('download')
     .setDescription('Refresh Robo-Valentine data (Only a maintainer can use this)');
 
-// Client is used as an argument here, just so command functions have consistent arguments and can be handled generically in index.ts
- 
 export async function execute(interaction: CommandInteraction): Promise<void> {
     if (config["approved-maintainers"].includes(interaction.user.id)) {
         await interaction.reply("🔄 Downloading new data...");

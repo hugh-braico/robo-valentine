@@ -18,5 +18,8 @@ Added regex aliases to Umbrella.
 
 ## 2025-06-15
 
-Minor changes, but this is the last backup before I let other maintainers loose
-on the sheet.
+Minor changes, last backup before I let other maintainers loose on the sheet.
+
+## 2025-06-21
+
+Minor changes, last backup before Robo-Val leaves "preview" status.

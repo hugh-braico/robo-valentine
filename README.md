@@ -2,22 +2,28 @@
 
 ![A picture of a robotic Valentine from Skullgirls.](./images/robo_valentine.png)
 
-[![icons](https://skillicons.dev/icons?i=js,ts,discordjs,gcp,aws)](https://skillicons.dev)
+![icons](https://skillicons.dev/icons?i=ts,discordjs,aws)
+
+**🢂 [CLICK HERE to add to your server, or as a personal App](https://discord.com/oauth2/authorize?client_id=1374926026668249168) 🢀**
 
 Discord bot for quickly getting Skullgirls frame data. 100% blind rewrite and
 hopeful successor to Liam's Robo-Fortune bot (aka FDBot).
 
 Written in TypeScript with discord.js. Currently hosted on Amazon Lightsail.
 
-Art by ComicBookGuy - <https://x.com/comicbookguy209>
+Art by [ComicBookGuy](https://x.com/comicbookguy209).
 
-## How to add to your server
+## New shiny improvements
 
-Robo-Valentine is a public bot, so you no longer need to contact a maintainer to
-have it added to your server. Just click this funny magic link and you can add
-the bot to any server that you're an admin of.
-
-*Auth link:* <https://discord.com/oauth2/authorize?client_id=1374926026668249168&permissions=274877910016&integration_type=0&scope=bot+applications.commands>
+- Robo-Val is fully public for anyone to access, and 100% open source.
+- Robo-Val still works as a traditional server bot, but you can also install her
+  as an App and take her anywhere!
+- Robo-Val's input parsing is more flexible.
+  - Shorthands for Umbrella's hunger states are now supported, eg. `"rav 2lp"`.
+  - Slightly wrong queries like `"beatt extend"` will still work out thanks to
+    fuzzy matching.
+- That's about it for users, but there are a bunch of internal improvements for
+  maintainers as well.
 
 ## How to use the bot
 
@@ -46,7 +52,9 @@ one of those and upload it as a new Google Sheet, then point your bot towards
 that (see "Using your own Google Sheet" below). I also encourage you to make
 your own offline backups of the current live version.
 
-## Loading new data into the bot
+## Info for developers
+
+### Loading new data into the bot
 
 When pulling data for a `/fd` query, Robo-Valentine pulls from a local cache
 held in a sqlite database instead of pulling from the Google Sheet every time.
@@ -58,7 +66,7 @@ Google Sheet and load it into the bot's local cache for quick retrieval. If
 you're an approved maintainer (contact SeaJay), you can use the command in
 Discord to fetch new data.
 
-## Dev setup
+### Dev setup
 
 You'll need git, NodeJS, and npm. I'm using node `24.1.0`, so try to use the
 same version especially if you're encountering any weird errors.
@@ -112,7 +120,7 @@ Run the bot:
 npm run dev
 ```
 
-## Production setup
+### Production setup
 
 For production hosting, keep in mind that the database is less than 1 MB and
 all the bot really does is present it in a user friendly way. The smallest
@@ -143,11 +151,11 @@ Then later you can check on it with
 # shows a list of running services
 pm2 ls
 
-# brings up the PM2 monitoring tool
-pm2 monit
+# get the last few lines of logs
+pm2 logs
 
-# get the last 100 lines of logs
-tail -100 combined.log
+# brings up the PM2 monitoring tool if you want to watch for longer
+pm2 monit
 ```
 
 More destructive commands:
@@ -160,7 +168,7 @@ pm2 restart all
 pm2 delete all
 ```
 
-## Using your own Google Sheet
+### Using your own Google Sheet
 
 1. Go through the same process as above to create a service account and save it
    to the same `config/service-account.json` path.
@@ -173,7 +181,3 @@ pm2 delete all
 
 After that, your instance of the bot should be able to download new data using
 the `/download` slash command.
-
-## TODO list
-
-- Unit testing
