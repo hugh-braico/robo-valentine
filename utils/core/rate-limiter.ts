@@ -1,5 +1,12 @@
+/**
+ * @fileoverview Implements a simple rate-limiting mechanism using an in-memory cache.
+ * Limits the number of actions a user can perform within a specified time window.
+ * Periodically cleans up expired entries from the cache.
+ * 
+ * @module utils/core/rate-limiter
+ */
 import { logger } from './logger.js';
-import config from '../config/config.json' with { type: "json" };
+import config from '../../config/config.json' with { type: "json" };
 
 interface RateLimitEntry {
     count: number;
@@ -32,6 +39,7 @@ export function checkRateLimit(userId: string): boolean {
 }
 
 // Periodic cleanup of expired entries
+// Note: A daily interval is perfectly fine, overkill even, for the expected level of traffic.
 setInterval(() => {
     logger.info("Clearing rate limit cache.");
     const now = Date.now();
@@ -41,4 +49,4 @@ setInterval(() => {
             logger.info(`  Deleting userId ${userId} from rate limit cache.`);
         }
     }
-}, 86400000); // once a day
+}, 86400000); // one day in ms

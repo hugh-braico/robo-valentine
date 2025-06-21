@@ -1,13 +1,18 @@
+/**
+ * @fileoverview Utility functions for logging results and errors to specific Discord channels.
+ * 
+ * @module utils/discord/log-to-channel
+ */
 import { ChatInputCommandInteraction, Client, Guild, Message, TextChannel, User } from 'discord.js';
-import config from '../config/config.json' with { type: "json" };
+import config from '../../config/config.json' with { type: "json" };
 
-async function logToChannel(interaction: ChatInputCommandInteraction, client: Client, message: string, channel: TextChannel): Promise<void> {
-    // horizontal line separator before every new message
-    let debugString = "~~                                                                                                                                        ~~\n";
+async function logToChannel(interaction: ChatInputCommandInteraction, message: string, channel: TextChannel): Promise<void> {
+    // horizontal line separator before every new message (max length to still fit on one line on smallish mobile text size)
+    let debugString = "~~                                                                                                                                ~~\n";
 
     // Identify the source of the invocation
-    const guild: Guild = interaction.guild;
-    if (guild === null) {
+    const guild: Guild | null = interaction.guild;
+    if (!guild) {
         debugString += `From DMs, or as a private App`;
     } else {
         debugString += `From server ${guild.name}`;
@@ -15,7 +20,7 @@ async function logToChannel(interaction: ChatInputCommandInteraction, client: Cl
 
     // Try and include a link to the response message if possible
     const reply: Message = await interaction.fetchReply();
-    if (reply) {
+    if (!reply) {
         debugString += ":\n";
     } else {
         const replyUrl: string = reply.url;
@@ -34,13 +39,15 @@ export async function logFdResultToChannel(interaction: ChatInputCommandInteract
     if (logChannelId) {
         let debugString = "";
 
-        const characterName = interaction.options.getString("character");
-        const moveName = interaction.options.getString("move").trim();
-        debugString += `\`/fd ${characterName} ${moveName}\`\n`;
+        const characterName: string | null = interaction.options.getString("character");
+        const safeCharacterName: string = characterName ? characterName : "(Error retrieving character name input!!)";
+        const moveName: string | null = interaction.options.getString("move");
+        const trimmedMoveName: string = moveName ? moveName.trim() : "";
+        debugString += `\`/fd ${safeCharacterName} ${trimmedMoveName}\`\n`;
 
         debugString += `Result: ${result}`;
         const logChannel: TextChannel = client.channels.cache.get(logChannelId) as TextChannel;
-        await logToChannel(interaction, client, debugString, logChannel);
+        await logToChannel(interaction, debugString, logChannel);
     }
 }
 
@@ -61,6 +68,6 @@ export async function logErrorToChannel(interaction: ChatInputCommandInteraction
         debugString += `<@${firstMaintainerId}>`;
 
         const errorChannel: TextChannel = client.channels.cache.get(errorChannelId) as TextChannel;
-        await logToChannel(interaction, client, debugString, errorChannel);
+        await logToChannel(interaction, debugString, errorChannel);
     }
 }

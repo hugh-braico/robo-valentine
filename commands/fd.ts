@@ -1,11 +1,11 @@
-import { Client, ChatInputCommandInteraction, SlashCommandBuilder, EmbedBuilder, User } from "discord.js";
-import { Character, Move, RegexAlias, SimpleAlias } from '../utils/database-tables.js';
+import { ChatInputCommandInteraction, SlashCommandBuilder, EmbedBuilder, User, Client } from "discord.js";
+import { Character, Move, RegexAlias, SimpleAlias } from '../utils/data/database-tables.js';
 import Fuse, { FuseResult } from 'fuse.js';
-import { generateFdOptions } from "../utils/generate-fd-options.js";
-import { logger } from '../utils/logger.js';
-import { checkRateLimit } from "../utils/fd-rate-limiter.js";
-import { logFdResultToChannel } from "../utils/log-to-channel.js";
-import { buildEmbed } from "../utils/embeds.js";
+import { generateFdOptions } from "../utils/discord/generate-fd-options.js";
+import { logger } from '../utils/core/logger.js';
+import { checkRateLimit } from "../utils/core/rate-limiter.js";
+import { logFdResultToChannel } from "../utils/discord/log-to-channel.js";
+import { buildEmbed } from "../utils/discord/embeds.js";
 
 // Generate character options, using the google sheet as source of truth
 const fdOptions = await generateFdOptions();
@@ -33,17 +33,48 @@ export async function execute(interaction: ChatInputCommandInteraction, client: 
         await interaction.reply(`❗ You are being rate limited! Please try again in a couple of minutes.`);
         return;
     }
+    
+    const characterName = sanitise(interaction.options.getString("character") ?? "");
+    if (characterName === "") {
+        await interaction.reply(`❌ You have to supply a valid character! I don't even know how you managed to do that. Please contact a maintainer to investigate.`);
+        await logFdResultToChannel(interaction, client, "❌ Character name resolved to empty string.");
+        return;
+    }
+    
+    // Look up the character's pretty name and colour data for the embed
+    logger.info("  Getting character from db...");
+    const character: Character | null = await Character.findByPk(characterName);
+    if (!character) {
+        const result = `❗ Couldn't find the character "${characterName}!`;
+        logger.info(`    ${result}`);
+        logger.info("  Returning failure reply...");
+        await interaction.reply(`${result} I don't even know how you managed to do that. Please contact a maintainer to investigate.`);
+        logger.info("Done.\n");
+        return;
+    }
+
+    const moveName = sanitise((interaction.options.getString("move") ?? "").toUpperCase().trim());
+    if (moveName === "") {
+        await interaction.reply(`❌ You have to supply a valid move name!"`);
+        await logFdResultToChannel(interaction, client, "❌ Move name resolved to empty string.");
+        return;
+    }
 
     // Find the canonical name for this move by looking it up against aliases in database
-    const characterName = sanitise(interaction.options.getString("character"));
-    const moveName = sanitise(interaction.options.getString("move").toUpperCase().trim());
+    logger.info(`Begin fetch for ${characterName} - ${moveName}...`);
     const searchResult: SearchResult = await findCanonicalMoveName(characterName, moveName);
     
     // If unable to find the move, throw up an error reply
+    // Use the Mizuumi wiki as a fallback resource, make the user look it up themselves
     if (!searchResult.canonicalName) {
-        await interaction.reply(`❗ Couldn't find the move "${moveName}" for the character "${characterName}!"`);
         logger.info(`    ${searchResult.resultString}`);
+        logger.info("  Returning failure reply...");
+        const prettyName = character.get('Pretty Name') as string;
+        const wikiName = prettyName.replace(" ", "_");
+        const wikiUrl = `https://wiki.gbl.gg/w/Skullgirls/${wikiName}#Move_List`;
+        await interaction.reply(`❗ Couldn't find a move for ${prettyName} called "${moveName}!"\nTry again, or look it up on the wiki instead:\n**<${wikiUrl}>**`);
         await logFdResultToChannel(interaction, client, searchResult.resultString);
+        logger.info("Done.\n");
         return;
     }
 
@@ -51,28 +82,26 @@ export async function execute(interaction: ChatInputCommandInteraction, client: 
     logger.info(`  Getting move ${searchResult.canonicalName} from db...`);
     const move: Move = await fetchMove(characterName, searchResult.canonicalName)
     if (!move) {
-        await interaction.reply(`❗ Encountered an error when trying to retrieve the move "${moveName} (${searchResult.canonicalName})" from my database! Please contact a maintainer to investigate.`);
+        const result = `❗ Encountered an error when trying to retrieve the move "${moveName} (${searchResult.canonicalName})"!`;
+        logger.info(`    ${result}`);
+        logger.info("  Returning failure reply...");
+        await interaction.reply(`${result} Please contact a maintainer to investigate.`);
+        logger.info("Done.\n");
         return;
     }
-    logger.info("Done.");
 
-    // Look up the character's pretty name and colour data for the embed
-    logger.info("  Getting character from db...");
-    const character: Character = await Character.findByPk(characterName);
-    if (!character) {
-        await interaction.reply(`❗ Couldn't find the character "${characterName}! I don't even know how you managed to do that. Please contact a maintainer to investigate.`);
-        return;
-    }
-    // Build embed data
+    // Build embed data (or fetch from embed cache if pre-built)
     const embed: EmbedBuilder = buildEmbed(character, move);
 
     // Return the reply. If we had to resort to fuzzy matching, tell the user we did that
-    if (searchResult.strategy == "fuzzy") {
+    logger.info("  Returning reply...");
+    if (searchResult.strategy == SearchStrategy.Fuzzy) {
         await interaction.reply({content: "❓ I'm not sure I know what that move is, but here's my best guess:", embeds: [embed]});
     } else {
         await interaction.reply({embeds: [embed]});
     }
     await logFdResultToChannel(interaction, client, searchResult.resultString);
+    logger.info("Done.\n");
 };
 
 // Sanitise inputs and outputs to prevent naughty stuff from happening
@@ -91,98 +120,127 @@ function sanitise(s: string): string {
     return s.replace(/[^\w\s[\].\-,'+~]/gi, '').substring(0,100);
 }
 
+enum SearchStrategy {
+    Simple = "simple",
+    Regex = "regex",
+    Fuzzy = "fuzzy",
+    NotFound = "notFound"
+}
+
 interface SearchResult {
-    canonicalName: string;
-    strategy: string;
-    resultString: string
+    canonicalName: Uppercase<string> | null;
+    strategy: SearchStrategy;
+    resultString: string;
 }
 
 // Search for a move's "real" name, given a user-supplied approximation of its name.
 async function findCanonicalMoveName(characterName: string, moveName: string): Promise<SearchResult> {
-    logger.info(`Begin fetch for ${characterName} - ${moveName}...`);
-
-    // The canonical name for a move is the one listed under "Move Name" rather than "Alt Names".
-    let canonicalName: string = null;
-
-    // Hold onto a summary of how we got to the correct answer for logging purposes
-    let resultString = "❌ No match via any strategy!";
-
-    // Keep note of which strategy was used (simple, fuzzy, regex, or null for failure)
-    let strategy: string = null;
+    logger.info("  Looking up alias...");
 
     // First port of call is to see if there is an exactly-matching simple alias for this move
-    logger.info("  Getting alias from db...");
-    const simpleAlias: SimpleAlias = await SimpleAlias.findOne({
+    const simpleSearchResult: SearchResult | null = await simpleAliasSearch(characterName, moveName);
+    if (simpleSearchResult) {
+        logger.info(`    ${simpleSearchResult.resultString}`);
+        return simpleSearchResult;
+    }
+
+    // If simple strategy fails, try regex strategy
+    const regexSearchResult: SearchResult | null = await regexAliasSearch(characterName, moveName);
+    if (regexSearchResult) {
+        logger.info(`    ${regexSearchResult.resultString}`);
+        return regexSearchResult;
+    }
+
+    // If both simple and regex strategies fail, try fuzzy search
+    const fuzzySearchResult: SearchResult | null = await fuzzyAliasSearch(characterName, moveName);
+    if (fuzzySearchResult) {
+        logger.info(`    ${fuzzySearchResult.resultString}`);
+        return fuzzySearchResult;
+    }
+
+    // If all 3 strategies failed, give up! Hit da bricks!
+    return {
+        canonicalName: null,
+        strategy: SearchStrategy.NotFound,
+        resultString: "❌ No match via any strategy!"
+    } as SearchResult;
+}
+
+// try and find a matching alias with a simple exact-matching strategy
+async function simpleAliasSearch(characterName: string, moveName: string): Promise<SearchResult | null> {
+    const simpleAlias: SimpleAlias | null = await SimpleAlias.findOne({
         where: {
             Character: characterName,
             Alias: moveName
         }
     });
-
-    if (!simpleAlias) {
-        // Haven't found the canonical name for this move yet
-        logger.info(`    No simple alias match for ${moveName}.`);
+    if (simpleAlias) {
+        const canonicalName = simpleAlias.get('Move Name') as string;
+        return {
+            canonicalName: canonicalName,
+            strategy: SearchStrategy.Simple,
+            resultString: `✅ Simple alias match for ${moveName} -> ${canonicalName}.`
+        } as SearchResult;
     } else {
-        strategy = "simple";
-        canonicalName = simpleAlias.get('Move Name') as string;
-        resultString = `✅ Simple alias match for ${moveName} -> ${canonicalName}.`;
-        logger.info(`    ${resultString}`);
+        return null;
     }
+}
 
-    // If simple strategy fails, try regex strategy
-    if (!canonicalName) {
-        // Get all regex aliases for this character
-        const regexAliases: RegexAlias[] = await RegexAlias.findAll({
-            attributes: [
-                'Pattern',
-                'Move Name'
-            ],
-            where: {
-                Character: characterName
-            }
-        });
-        // helper function to test a RegexAlias against a string
-        function checkRegex(regexAlias: RegexAlias, text: string): boolean {
-            const regex = new RegExp(regexAlias.get('Pattern') as string);
-            return regex.test(text);
+// try and find a matching alias by checking it against any available regex aliases
+async function regexAliasSearch(characterName: string, moveName: string): Promise<SearchResult | null> {
+    // Get all regex aliases for this character
+    const regexAliases: RegexAlias[] = await RegexAlias.findAll({
+        attributes: [
+            'Pattern',
+            'Move Name'
+        ],
+        where: {
+            Character: characterName
         }
-        // Get the first regex alias that matches.
-        // Multiple patterns matching the same input is unavoidable in practice.
-        const matchingRegex: RegexAlias = regexAliases.find((r) => checkRegex(r, moveName));
-        if (matchingRegex) {
-            strategy = "regex";
-            canonicalName = matchingRegex.get('Move Name') as string;
-            resultString = `✅ Regex alias match for ${moveName} -> ${canonicalName} via /${matchingRegex.get('Pattern')}/.`;
-            logger.info(`    ${resultString}`);
-        } else { 
-            logger.info(`    No regex alias match for ${moveName}.`);
-        }
+    });
+    // helper function to test a RegexAlias against a string
+    function checkRegex(regexAlias: RegexAlias, text: string): boolean {
+        const regex = new RegExp(regexAlias.get('Pattern') as string);
+        return regex.test(text);
     }
-
-    // If both simple and regex strategies fail, try fuzzy search
-    if (!canonicalName) {
-        const fuse = await getFuse(characterName);
-        const results: FuseResult<SimpleAlias>[] = fuse.search(moveName);
-        if (results.length > 0) {
-            strategy = "fuzzy";
-            canonicalName = results[0].item.get('Move Name') as string;
-            resultString = `✅ Fuzzy alias match for ${moveName} -> ${results[0].item.get('Alias')} -> ${canonicalName}.`
-            logger.info(`    ${resultString}`);
-        } else {
-            logger.info(`    No fuzzy alias match for ${moveName}.`);
-        }
+    // Get the first regex alias that matches.
+    // Multiple patterns matching the same input is impossible to guard against in practice.
+    const matchingRegex: RegexAlias | undefined = regexAliases.find((r) => checkRegex(r, moveName));
+    if (matchingRegex) {
+        const canonicalName = matchingRegex.get('Move Name') as string;
+        return {
+            canonicalName: canonicalName,
+            strategy: SearchStrategy.Regex,
+            resultString: `✅ Regex alias match for ${moveName} ~= \`${matchingRegex.get('Pattern')}\` -> ${canonicalName}.`
+        } as SearchResult;
+    } else { 
+        return null;
     }
+}
 
-    return {
-        canonicalName: canonicalName,
-        strategy: strategy,
-        resultString: resultString
-    } as SearchResult;
+// try and find a "close enough" matching alias with fuzzy matching
+async function fuzzyAliasSearch(characterName: string, moveName: string): Promise<SearchResult | null> {
+    const fuse = await getFuse(characterName);
+    const results: FuseResult<SimpleAlias>[] = fuse.search(moveName);
+    if (results.length > 0) {
+        const closeEnoughName: string = results[0].item.get('Alias') as string;
+        const canonicalName: string = results[0].item.get('Move Name') as string;
+        return {
+            canonicalName: canonicalName,
+            strategy: SearchStrategy.Fuzzy,
+            resultString: `✅ Fuzzy alias match for ${moveName} -> ${closeEnoughName} -> ${canonicalName}.`
+        } as SearchResult;
+    } else {
+        return null;
+    }
 }
 
 // Gets a Fuse object for all of a character's simple aliases, for fuzzy matching.
 async function getFuse(characterName: string): Promise<Fuse<SimpleAlias>> {
-    if (!fuseCache.has(characterName)) {
+    const cacheResult: Fuse<SimpleAlias> | undefined = fuseCache.get(characterName);
+    if (cacheResult) {
+        return cacheResult;
+    } else {
         const simpleAliases = await SimpleAlias.findAll({
             attributes: [
                 'Alias',
@@ -202,15 +260,19 @@ async function getFuse(characterName: string): Promise<Fuse<SimpleAlias>> {
         fuseCache.set(characterName, fuse);
         return fuse;
     }
-    return fuseCache.get(characterName);
 }
 
 // Given a move's canonical name, simply look up its frame data
 async function fetchMove(characterName: string, canonicalName: string): Promise<Move> { 
-    return Move.findOne({
+    const move: Move | null = await Move.findOne({
         where: {
             Character: characterName,
             'Move Name': canonicalName
         },
     });
+    if (move) {
+        return move;
+    } else {
+        throw `Failed to find move that should have been guaranteed: ${characterName}'s ${canonicalName}!`;
+    }
 }

@@ -1,11 +1,26 @@
+/**
+ * @fileoverview Script to deploy Discord application commands dynamically.
+ * Initializes the database and Google Sheets (needed for command option generation),
+ * and registers slash commands with Discord's API.
+ * 
+ * @module deploy-commands
+ * @requires discord.js
+ * @requires glob
+ * @requires node:path
+ * @requires ../../config/config.json
+ * @requires ../../utils/data/database-tables.js
+ * @requires ../data/google-sheets.js
+ * @requires ../data/import-data.js
+ * @requires ../core/logger.js
+ */
 import { REST, Routes } from 'discord.js';
-import config from '../config/config.json' with { type: "json" };
+import config from '../../config/config.json' with { type: "json" };
 import path from 'node:path';
 import { glob } from 'glob';
-import { initDatabase } from './database-tables.js';
-import { initGoogleSheet } from './google-sheets.js';
-import { loadCharacters } from './google-sheets.js';
-import { logger } from './logger.js';
+import { initDatabase } from '../../utils/data/database-tables.js';
+import { initGoogleSheet } from '../data/google-sheets.js';
+import { importCharacters } from '../data/import-data.js';
+import { logger } from '../core/logger.js';
 
 const token = config.token;
 const clientId = config.clientId;
@@ -20,7 +35,7 @@ await initGoogleSheet();
 logger.info("Google Sheets access initialised.\n");
 
 logger.info("Loading character data from Google Sheets to SQL...");
-await loadCharacters();
+await importCharacters();
 logger.info("Data loaded.");
 
 // Dynamically grab all command files and map their command names to their execute functions
@@ -40,7 +55,7 @@ for (const modulePath of commandModulePaths) {
 const rest = new REST().setToken(token);
 
 class PutResponse {
-    length: number;
+    length: number | undefined;
 }
 
 // Deploy commands

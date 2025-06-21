@@ -2,11 +2,20 @@ import path from 'node:path';
 import { Client, Collection, CommandInteraction, Events, GatewayIntentBits, MessageFlags, SlashCommandBuilder } from 'discord.js';
 import config from './config/config.json' with { type: "json" };
 import { glob } from 'glob';
-import { initDatabase } from './utils/database-tables.js';
-import { initGoogleSheet, loadData } from './utils/google-sheets.js';
-import { logger } from './utils/logger.js';
-import { logErrorToChannel } from './utils/log-to-channel.js';
-import { buildAllEmbeds } from './utils/embeds.js';
+import { initDatabase } from './utils/data/database-tables.js';
+import { initGoogleSheet } from './utils/data/google-sheets.js';
+import { importData } from './utils/data/import-data.js';
+import { logger } from './utils/core/logger.js';
+import { logErrorToChannel } from './utils/discord/log-to-channel.js';
+import { buildAllEmbeds } from './utils/discord/embeds.js';
+import { configSchema } from './utils/core/config-validation.js';
+
+// Validate config
+const { error } = configSchema.validate(config);
+if (error) {
+	logger.error(`Invalid configuration: ${error.message}`);
+	process.exit(1);
+}
 
 interface RoboValCommand { 
 	data: SlashCommandBuilder;
@@ -15,28 +24,33 @@ interface RoboValCommand {
 
 // Convenient to extend client to contain a map of command names to command objects.
 class RoboValClient extends Client {
-	commands: Collection<string, RoboValCommand>;
+	commands = new Collection<string, RoboValCommand>();
 }
 
+// Define tables in sqlite
 logger.info("Initialising database...");
 await initDatabase();
 logger.info("Database initialised.\n");
 
+// Establish access to Google Sheets
 logger.info("Initialising Google Sheets access...");
 await initGoogleSheet();
 logger.info("Google Sheets access initialised.\n");
 
+// Export data from Google Sheets into tables
 logger.info("Loading data from Google Sheets to SQL...");
-await loadData();
+await importData();
 logger.info("Data loaded.\n");
 
+// Cache all EmbedBuilder objects ahead of time so we don't need to build them on the fly
+// note: the app still only uses ~1MB of memory, we can easily afford to cache all of these.
 logger.info("Loading embed cache...");
 await buildAllEmbeds();
 logger.info("Cache loaded.\n");
 
 // Create a new client instance
-const client = new Client({ intents: [GatewayIntentBits.Guilds] }) as RoboValClient;
-client.commands = new Collection();
+export const client = new Client({ intents: [GatewayIntentBits.Guilds] }) as RoboValClient;
+client.commands = new Collection<string, RoboValCommand>();
 
 // Dynamically grab all command files and map their command names to their execute functions
 const commandModulePaths: string[] = await glob('commands/*.js');

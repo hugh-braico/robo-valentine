@@ -1,11 +1,15 @@
 # Robo-Valentine 💉
 
+![A picture of a robotic Valentine from Skullgirls.](./images/robo_valentine.png)
+
 [![icons](https://skillicons.dev/icons?i=js,ts,discordjs,gcp,aws)](https://skillicons.dev)
 
 Discord bot for quickly getting Skullgirls frame data. 100% blind rewrite and
 hopeful successor to Liam's Robo-Fortune bot (aka FDBot).
 
 Written in TypeScript with discord.js. Currently hosted on Amazon Lightsail.
+
+Art by ComicBookGuy - <https://x.com/comicbookguy209>
 
 ## How to add to your server
 
@@ -27,6 +31,8 @@ e.g.
 The above should yield the frame data for Filia's 5LP:
 
 ![Embedded Discord message of frame data for Filia's 5LP.](./images/example_invocation.png)
+
+The move name is case insensitive, so don't worry about capitalisation.
 
 ## Where is the data hosted?
 
@@ -74,13 +80,15 @@ online for this). Open `config/config.json` and fill in the token and Client ID
 for your bot. Go through the oauth flow on one of your servers to add the bot,
 so you have a channel to test commands with.
 
-Add your own Discord user account's ID to the `approved-maintainers` array in
-`config/config.json`. This just lets your user account call the `/download`
-command.
+Replace the example value in the `approved-maintainers` array in
+`config/config.json` with your Discord account's user ID. This just lets your
+user account call the `/download` command. The array must have at least one
+person's user ID in it.
 
 You can optionally fill in the `activity-channel-id` with the ID of a channel
 that Robo-Valentine has access to, and it will dump activity messages there.
-Same for the `error-channel-id` which will get dumps with exceptions/errors.
+Same for the `error-channel-id` which will get dumps with exceptions/errors. The
+first person in the maintainers array will get pinged on new error dumps.
 
 Create a Google service account to authenticate against Sheets - follow
 [this guide](https://theoephraim.github.io/node-google-spreadsheet/#/guides/authentication).
@@ -137,6 +145,9 @@ pm2 ls
 
 # brings up the PM2 monitoring tool
 pm2 monit
+
+# get the last 100 lines of logs
+tail -100 combined.log
 ```
 
 More destructive commands:
@@ -165,14 +176,4 @@ the `/download` slash command.
 
 ## TODO list
 
-Robo-Val is mostly functional now, but could use a few finishing touches:
-
-### Hosting/stability
-
-- Add health checks
-- Validate config on startup and throw up errors/warnings
-
-### Code hygiene
-
-- Clean up `any` and missing types
-- Unit tests on relevant functions
+- Unit testing

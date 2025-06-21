@@ -1,10 +1,19 @@
 {
-    "compilerOptions": {
-      "module": "NodeNext",
-      "noImplicitAny": true,
-      "preserveConstEnums": true,
-      "moduleResolution": "nodenext",
-      "resolveJsonModule": true,
-      "skipLibCheck": true
-    }
+  "compilerOptions": {
+    "module": "NodeNext",
+    "noImplicitAny": true,
+    "preserveConstEnums": true,
+    "moduleResolution": "nodenext",
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
+    "alwaysStrict": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
   }
+}

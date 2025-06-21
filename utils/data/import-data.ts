@@ -1,9 +1,21 @@
-import creds from '../config/service-account.json' with { type: "json" };
-import { JWT } from 'google-auth-library';
-import { GoogleSpreadsheet } from 'google-spreadsheet';
-import config from '../config/config.json' with { type: "json" };
+/**
+ * @fileoverview This module handles the import process of data from a remote Google Sheet
+ * into a local SQLite database using Sequelize ORM. It defines functions to clear existing
+ * database tables, validate and process data from Google Sheets, and populate the database
+ * with structured data for characters, macros, moves, and aliases.
+ *
+ * @module utils/data/import-data
+ * 
+ * @requires ../utils/logger.js - Provides logging functionality.
+ * @requires ./database-tables.js - Defines Sequelize models for database tables.
+ * @requires ./google-sheets.js - Provides access to the Google Sheets document for data retrieval.
+ *
+ * @exports importData - Main function to initiate the data import process. Used on startup, and by the /download command.
+ * @exports importCharacters - Function to import character data from the "Characters" sheet. Only used by deploy-commands.
+ */
+import { logger } from '../core/logger.js';
 import { Macro, Character, Move, SimpleAlias, RegexAlias, sequelize } from './database-tables.js';
-import { logger } from './logger.js';
+import { doc } from './google-sheets.js';
 
 interface CharacterRowData {
     Name: Uppercase<string>;
@@ -17,6 +29,7 @@ interface MacroRowData {
 };
 
 interface MoveRowData {
+    Character: Uppercase<string>;
     'Move Name': Uppercase<string>;
     Aliases: Uppercase<string>;
     Guard: string;
@@ -37,25 +50,23 @@ interface MoveRowData {
     'Footer URL': URL;
 };
 
-let doc: GoogleSpreadsheet;
-
-export async function initGoogleSheet(): Promise<void> {
-    const SCOPES = [
-        'https://www.googleapis.com/auth/spreadsheets.readonly'
-    ];
-    const jwt = new JWT({
-        email: creds.client_email,
-        key: creds.private_key,
-        scopes: SCOPES,
-    });
-    doc = new GoogleSpreadsheet(config["google-sheet-id"], jwt);
-    await doc.loadInfo();
-    logger.info(`  Successfully accessed Google sheet: ${doc.title}.`);
+interface SimpleAliasData { 
+    Character: Uppercase<string>;
+    Alias: Uppercase<string>;
+    'Move Name': Uppercase<string>;
 }
 
-export async function loadData(): Promise<void> {
+interface RegexAliasData { 
+    Character: Uppercase<string>;
+    Pattern: Uppercase<string>;
+    'Move Name': Uppercase<string>;
+}
+export async function importData(): Promise<void> {
+    if (!doc) {
+        throw "❗ Invalid doc (must be non-null)!"
+    }
     await sequelize.transaction(async () => {
-        logger.info("  Begin data load...")
+        logger.info("  Begin data import...")
 
         // Clear out all databases
         await Character.sync({ force: true });
@@ -64,17 +75,20 @@ export async function loadData(): Promise<void> {
         await SimpleAlias.sync({ force: true });
         await RegexAlias.sync({ force: true });
 
-        // load new data
-        await loadCharacters();
-        await loadMacros();
-        await loadMovesAndAliases();
+        // import new data
+        await importCharacters();
+        await importMacros();
+        await importMovesAndAliases();
 
-        logger.info("  Data load completed.")
+        logger.info("  Data import completed.")
     });
 };
 
-export async function loadCharacters(): Promise<void> {
-    // Get list of characters from the Characters sheet
+export async function importCharacters(): Promise<void> {
+    if (!doc) {
+        throw "❗ Invalid doc (must be non-null)!"
+    }
+    // Import list of characters from the Characters sheet
     const characterSheet = doc.sheetsByTitle["Characters"];
     const characterRows = await characterSheet.getRows<CharacterRowData>();
     logger.info(`    Creating character data...`)
@@ -84,15 +98,18 @@ export async function loadCharacters(): Promise<void> {
         if (characterName.length === 0 || characterName === null) {
             throw `Found a blank or undefined character name!`
         }
-        checkDuplicateCharacter(characterBulkData, characterName);
+        checkDuplicateCharacter(characterBulkData as CharacterRowData[], characterName);
         characterBulkData.push(row.toObject())
     }
     await Character.bulkCreate(characterBulkData, {validate: true});
-    logger.info(`    Done.\n`)
+    logger.info(`    Done.`)
 };
 
-async function loadMacros(): Promise<void> {
-    // Load all macros for movenames (eg. MACRO_5LP = 5LP, S.LP, JAB, etc)
+async function importMacros(): Promise<void> {
+    if (!doc) {
+        throw "❗ Invalid doc (must be non-null)!"
+    }
+    // Import all macros for movenames (eg. MACRO_5LP = 5LP, S.LP, JAB, etc)
     const macroSheet = doc.sheetsByTitle["Macros"];
     const macroRows = await macroSheet.getRows<MacroRowData>();
     logger.info(`    Creating macro data...`)
@@ -102,14 +119,17 @@ async function loadMacros(): Promise<void> {
         if (macroKey.length === 0 || macroKey === null) {
             throw `Found a blank or undefined macro name!`
         }
-        checkDuplicateMacro(macroBulkData, row.get('Key'));
+        checkDuplicateMacro(macroBulkData as MacroRowData[], row.get('Key'));
         macroBulkData.push(row.toObject())
     }
     await Macro.bulkCreate(macroBulkData, {validate: true});
-    logger.info(`    Done.\n`)
+    logger.info(`    Done.`)
 };
 
-async function loadMovesAndAliases(): Promise<void> {
+async function importMovesAndAliases(): Promise<void> {
+    if (!doc) {
+        throw "❗ Invalid doc (must be non-null)!"
+    }
     // Get list of characters from the Characters sheet
     const characterSheet = doc.sheetsByTitle["Characters"];
     const characterRows = await characterSheet.getRows<CharacterRowData>();
@@ -131,7 +151,7 @@ async function loadMovesAndAliases(): Promise<void> {
             if (moveName.length === 0 || moveName === null) {
                 throw `Found a blank or undefined move name for character ${characterName}!`
             }
-            checkDuplicateMove(moveBulkData, characterName, moveName);
+            checkDuplicateMove(moveBulkData as MoveRowData[], characterName, moveName);
             moveBulkData.push({
                 Character: characterName,
                 ...moveRow.toObject()
@@ -152,22 +172,26 @@ async function loadMovesAndAliases(): Promise<void> {
                 .filter((alias: string) => !(alias.startsWith("/") && alias.endsWith('/')));
             for (const alias of simpleAliasList) {
                 if (alias.startsWith('MACRO_')) {
-                    const macroLookup: Macro = await Macro.findOne({
+                    const macroLookup: Macro | null = await Macro.findOne({
                         where: {
                             Key: alias
                         }
                     });
-                    const expandedValues: Uppercase<string>[] = (macroLookup.get('Value') as Uppercase<string>).split('\n') as Uppercase<string>[];
-                    for (const value of expandedValues) {
-                        checkDuplicateSimpleAlias(simpleAliasBulkData, characterName, value, moveName);
-                        simpleAliasBulkData.push({
-                            Character: characterName,
-                            Alias: value,
-                            'Move Name': moveName
-                        });
+                    if (macroLookup) {
+                        const expandedValues: Uppercase<string>[] = (macroLookup.get('Value') as Uppercase<string>).split('\n') as Uppercase<string>[];
+                        for (const value of expandedValues) {
+                            checkDuplicateSimpleAlias(simpleAliasBulkData as SimpleAliasData[], characterName, value, moveName);
+                            simpleAliasBulkData.push({
+                                Character: characterName,
+                                Alias: value,
+                                'Move Name': moveName
+                            });
+                        }
+                    } else {
+                        throw `Found undefined macro: ${alias}`;
                     }
                 } else {
-                    checkDuplicateSimpleAlias(simpleAliasBulkData, characterName, alias, moveName);
+                    checkDuplicateSimpleAlias(simpleAliasBulkData as SimpleAliasData[], characterName, alias, moveName);
                     simpleAliasBulkData.push({
                         Character: characterName,
                         Alias: alias,
@@ -181,9 +205,9 @@ async function loadMovesAndAliases(): Promise<void> {
                 .split('\n')
                 .map((p: string) => p.trim())
                 .filter((p: string) => p.startsWith("/") && p.endsWith('/'))
-                .map((p: string) => p.substring(1,p.length-2));
+                .map((p: string) => p.substring(1,p.length-1));
             for (const pattern of regexAliasList) {
-                checkDuplicateRegexAlias(regexAliasBulkData, characterName, pattern, moveName);
+                checkDuplicateRegexAlias(regexAliasBulkData as RegexAliasData[], characterName, pattern, moveName);
                 // logger.info(`        Storing RegexAlias: ${JSON.stringify({Character: characterName, Pattern: pattern, 'Move Name': moveName})}`);
                 regexAliasBulkData.push({
                     Character: characterName,
@@ -199,29 +223,25 @@ async function loadMovesAndAliases(): Promise<void> {
     logger.info(`    Done.`)
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function checkDuplicateCharacter(data: any[], characterName: string): void {
+function checkDuplicateCharacter(data: CharacterRowData[], characterName: string): void {
     if (data.some((c) => c.Name == characterName)) {
         throw `Duplicate character detected: ${characterName}!`;
     };
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function checkDuplicateMacro(data: any[], macroKey: string): void {
+function checkDuplicateMacro(data: MacroRowData[], macroKey: string): void {
     if (data.some((m) => m.Key == macroKey)) {
         throw `Duplicate macro detected: ${macroKey}!`;
     };
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function checkDuplicateMove(data: any[], characterName: string, moveName: string): void {
+function checkDuplicateMove(data: MoveRowData[], characterName: string, moveName: string): void {
     if (data.some((m) => m.Character == characterName && m['Move Name'] == moveName)) {
         throw `Duplicate move detected: ${characterName}'s ${moveName}!`;
     };
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function checkDuplicateSimpleAlias(data: any[], characterName: string, alias: string, moveName: string): void {
+function checkDuplicateSimpleAlias(data: SimpleAliasData[], characterName: string, alias: string, moveName: string): void {
     if (data.some((a) => a.Character == characterName && a.Alias == alias)) {
         throw `Duplicate move alias detected: ${characterName}'s ${alias} (${moveName})!`;
     };
@@ -229,8 +249,7 @@ function checkDuplicateSimpleAlias(data: any[], characterName: string, alias: st
 
 // We CANNOT check whether two regex patterns overlap the same match space,
 // but we can at least check whether two patterns are exactly the same.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function checkDuplicateRegexAlias(data: any[], characterName: string, pattern: string, moveName: string): void {
+function checkDuplicateRegexAlias(data: RegexAliasData[], characterName: string, pattern: string, moveName: string): void {
     if (data.some((r) => r.Pattern == pattern)) {
         throw `Duplicate regex alias detected: ${characterName}'s ${pattern} (${moveName})!`;
     };

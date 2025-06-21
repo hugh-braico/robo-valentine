@@ -1,5 +1,20 @@
+/**
+ * @fileoverview This file defines the schema for an SQLite database using Sequelize ORM.
+ * It sets up the models and their respective tables for the database, including:
+ * - `Macro`: Stores key-value pairs for macros.
+ * - `Character`: Stores metadata about characters.
+ * - `Move`: Stores frame data for character moves.
+ * - `SimpleAlias`: Stores simple exact-match aliases for moves.
+ * - `RegexAlias`: Stores regex-based aliases for moves.
+ * 
+ * The `initDatabase` function initializes the SQLite database in memory and creates
+ * all the tables with their respective schemas. Each table is synchronized with the
+ * database, ensuring the schema is applied correctly.
+ * 
+ * @module database-tables
+ */
 import { Sequelize, DataTypes, Model } from "sequelize";
-import { logger } from './logger.js';
+import { logger } from '../utils/core/logger.js';
 
 // Set up sqlite database
 export let sequelize: Sequelize; 
@@ -15,7 +30,6 @@ export async function initDatabase(): Promise<void> {
             dialect: 'sqlite',
             storage: ':memory:',
             logging: false
-            // logging: logger.info
         }
     );
 

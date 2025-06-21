@@ -8,6 +8,7 @@
     "example": "examples"
   },
   "scripts": {
+    "clean": "git clean -x -f -e config/",
     "dev": "tsc && node --require=suppress-experimental-warnings .",
     "deploy-commands": "tsc && node --require=suppress-experimental-warnings utils/deploy-commands.js",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -28,6 +29,7 @@
     "glob": "^11.0.2",
     "google-auth-library": "^8.8.0",
     "google-spreadsheet": "^4.1.4",
+    "joi": "^17.13.3",
     "pm2": "^6.0.8",
     "sequelize": "^6.37.7",
     "sqlite3": "^5.1.7",
