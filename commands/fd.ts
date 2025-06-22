@@ -116,8 +116,11 @@ function sanitise(s: string): string {
     //  '   is used in e.g. `LOCK 'N' LOAD`
     //  +   is used in e.g. `236+PP`
     //  ~   is used in e.g. `[4]6+K~LK`
-    // Also truncate to 100 characters since longer than that will never be necessary.
-    return s.replace(/[^\w\s[\].\-,'+~]/gi, '').substring(0,100);
+    // Also make any double or more spaces into single spaces (improves matching)
+    // Also truncate to 100 characters, since longer than that will never be necessary.
+    return s.replace(/[^\w\s[\].\-,'+~]/gi, '')
+        .replace(/\s\s+/g, ' ')
+        .substring(0,100);
 }
 
 enum SearchStrategy {
