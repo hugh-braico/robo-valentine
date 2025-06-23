@@ -18,10 +18,14 @@ Art by [ComicBookGuy](https://x.com/comicbookguy209).
 - Robo-Val is fully public for anyone to access, and 100% open source.
 - Robo-Val still works as a traditional server bot, but you can also install her
   as an App and take her anywhere!
-- Robo-Val's input parsing is more flexible.
+- Robo-Val's input parsing is more flexible, so you're more likely to get what
+  you want.
   - Shorthands for Umbrella's hunger states are now supported, eg. `"rav 2lp"`.
   - Slightly wrong queries like `"beatt extend"` will still work out thanks to
     fuzzy matching.
+  - In most cases, Robo-Val will accept any amount of space between words,
+    including none. All three of `beat extend`, `beat   extend`  and `beatextend`
+    will work.
 - That's about it for users, but there are a bunch of internal improvements for
   maintainers as well.
 
