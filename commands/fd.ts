@@ -26,6 +26,8 @@ export const data = new SlashCommandBuilder()
             .setRequired(true));
 
 export async function execute(interaction: ChatInputCommandInteraction, client: Client): Promise<void> {
+    // const startTime = performance.now();
+
     // Rate limiting check
     const user: User = interaction.user;
     if (!checkRateLimit(user.id)) { 
@@ -60,6 +62,8 @@ export async function execute(interaction: ChatInputCommandInteraction, client: 
         return;
     }
 
+    // const preSearchTime = performance.now();
+
     // Find the canonical name for this move by looking it up against aliases in database
     logger.info(`Begin fetch for ${characterName} - ${moveName}...`);
     const searchResult: SearchResult = await findCanonicalMoveName(characterName, moveName);
@@ -78,6 +82,8 @@ export async function execute(interaction: ChatInputCommandInteraction, client: 
         return;
     }
 
+    // const postSearchTime = performance.now();
+
     // Lookup the move in the database
     logger.info(`  Getting move ${searchResult.canonicalName} from db...`);
     const move: Move = await fetchMove(characterName, searchResult.canonicalName)
@@ -90,6 +96,8 @@ export async function execute(interaction: ChatInputCommandInteraction, client: 
         return;
     }
 
+    // const postFetchMoveTime = performance.now();
+
     // Build embed data (or fetch from embed cache if pre-built)
     const embed: EmbedBuilder = buildEmbed(character, move);
 
@@ -100,6 +108,12 @@ export async function execute(interaction: ChatInputCommandInteraction, client: 
     } else {
         await interaction.reply({embeds: [embed]});
     }
+    // const endTime = performance.now();
+    // logger.info(`Fetching initial info:        ${Math.round(preSearchTime - startTime)} ms`);
+    // logger.info(`Searching for alias match:    ${Math.round(postSearchTime - preSearchTime)} ms`);
+    // logger.info(`Fetching canonical move data: ${Math.round(postFetchMoveTime - postSearchTime)} ms`);
+    // logger.info(`Returning reply embed:        ${Math.round(endTime - postFetchMoveTime)} ms`);
+
     await logFdResultToChannel(interaction, client, searchResult.resultString);
     logger.info("Done.\n");
 };

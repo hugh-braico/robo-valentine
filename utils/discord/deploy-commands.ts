@@ -41,9 +41,9 @@ logger.info("Data loaded.");
 // Dynamically grab all command files and map their command names to their execute functions
 const commandModulePaths: string[] = await glob('commands/*.js');
 for (const modulePath of commandModulePaths) {
-	logger.info(`Importing module ${modulePath}`);
-	const fullModulePath = "file://" + path.resolve(modulePath);
-	const command = await import(fullModulePath);
+    logger.info(`Importing module ${modulePath}`);
+    const fullModulePath = "file://" + path.resolve(modulePath);
+    const command = await import(fullModulePath);
     if ('data' in command && 'execute' in command) {
         commands.push(command.data.toJSON());
     } else {
@@ -60,24 +60,24 @@ class PutResponse {
 
 // Deploy commands
 (async () => {
-	try {
-		logger.info(`Started refreshing ${commands.length} application (/) commands.`);
+    try {
+        logger.info(`Started refreshing ${commands.length} application (/) commands.`);
 
-		// Remove all existing commands
-		await rest.put(
-			Routes.applicationCommands(clientId),
-			{ body: [] },
-		) as PutResponse;
+        // Remove all existing commands
+        await rest.put(
+            Routes.applicationCommands(clientId),
+            { body: [] },
+        ) as PutResponse;
 
-		// Publish all commands
-		const data = await rest.put(
-			Routes.applicationCommands(clientId),
-			{ body: commands },
-		) as PutResponse;
+        // Publish all commands
+        const data = await rest.put(
+            Routes.applicationCommands(clientId),
+            { body: commands },
+        ) as PutResponse;
 
-		logger.info(`Successfully reloaded ${data.length} application (/) commands.`);
+        logger.info(`Successfully reloaded ${data.length} application (/) commands.`);
 
-	} catch (error) {
-		console.error(error);
-	}
+    } catch (error) {
+        console.error(error);
+    }
 })();

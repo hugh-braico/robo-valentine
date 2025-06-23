@@ -13,18 +13,18 @@ import { configSchema } from './utils/core/config-validation.js';
 // Validate config
 const { error } = configSchema.validate(config);
 if (error) {
-	logger.error(`Invalid configuration: ${error.message}`);
-	process.exit(1);
+    logger.error(`Invalid configuration: ${error.message}`);
+    process.exit(1);
 }
 
 interface RoboValCommand { 
-	data: SlashCommandBuilder;
-	execute(interaction: CommandInteraction, client: Client): Promise<void>;
+    data: SlashCommandBuilder;
+    execute(interaction: CommandInteraction, client: Client): Promise<void>;
 }
 
 // Convenient to extend client to contain a map of command names to command objects.
 class RoboValClient extends Client {
-	commands = new Collection<string, RoboValCommand>();
+    commands = new Collection<string, RoboValCommand>();
 }
 
 // Define tables in sqlite
@@ -55,43 +55,46 @@ client.commands = new Collection<string, RoboValCommand>();
 // Dynamically grab all command files and map their command names to their execute functions
 const commandModulePaths: string[] = await glob('commands/*.js');
 for (const modulePath of commandModulePaths) {
-	logger.info(`Importing module ${modulePath}`);
-	const fullModulePath = "file://" + path.resolve(modulePath);
-	const command = await import(fullModulePath);
-	// Set a new item in the Collection with the key as the command name and the value as the exported module
-	if ('data' in command && 'execute' in command) {
-		logger.info(`  Loading command ${command.data.name}...`);
-		client.commands.set(command.data.name, command);
-	} else {
-		logger.warning(`WARNING: The command at ${modulePath} is missing a required "data" or "execute" property.`);
-	}
+    logger.info(`Importing module ${modulePath}`);
+    const fullModulePath = "file://" + path.resolve(modulePath);
+    const command = await import(fullModulePath);
+    // Set a new item in the Collection with the key as the command name and the value as the exported module
+    if ('data' in command && 'execute' in command) {
+        logger.info(`  Loading command ${command.data.name}...`);
+        client.commands.set(command.data.name, command);
+    } else {
+        logger.warning(`WARNING: The command at ${modulePath} is missing a required "data" or "execute" property.`);
+    }
 }
 
 // Create a listener and handler to execute any available command
 client.on(Events.InteractionCreate, async interaction => {
-	if (!interaction.isChatInputCommand()) return;
-	const command = client.commands.get(interaction.commandName);
-	if (!command) {
-		logger.error(`ERROR: No command matching ${interaction.commandName} was found.`);
-		return;
-	}
-	try {
-		await command.execute(interaction, client);
-	} catch (error) {
-		logger.error(error);
-		if (interaction.replied || interaction.deferred) {
-			await interaction.followUp({ content: 'There was an error while executing this command!', flags: MessageFlags.Ephemeral });
-		} else {
-			await interaction.reply({ content: 'There was an error while executing this command! Please contact a maintainer to fix it.' });
-		}
-		await logErrorToChannel(interaction, client, error as string);
-	}
+    // const startTime = performance.now();
+    if (!interaction.isChatInputCommand()) return;
+    const command = client.commands.get(interaction.commandName);
+    if (!command) {
+        logger.error(`ERROR: No command matching ${interaction.commandName} was found.`);
+        return;
+    }
+    try {
+        await command.execute(interaction, client);
+    } catch (error) {
+        logger.error(error);
+        if (interaction.replied || interaction.deferred) {
+            await interaction.followUp({ content: 'There was an error while executing this command!', flags: MessageFlags.Ephemeral });
+        } else {
+            await interaction.reply({ content: 'There was an error while executing this command! Please contact a maintainer to fix it.' });
+        }
+        await logErrorToChannel(interaction, client, error as string);
+    }
+    // const endTime = performance.now();
+    // logger.info(`Total command time:           ${Math.round(endTime - startTime)} ms`);
 });
 
 // Create a listener to confirm that we're logged in
 client.once(Events.ClientReady, readyClient => {
-	logger.info(" ");
-	logger.info(`Ready! Logged in as ${readyClient.user.tag}\n`);
+    logger.info(" ");
+    logger.info(`Ready! Logged in as ${readyClient.user.tag}\n`);
 });
 
 // Log in to Discord with client token
