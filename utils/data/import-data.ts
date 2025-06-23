@@ -164,11 +164,12 @@ async function importMovesAndAliases(): Promise<void> {
                 Alias: moveName,
                 'Move Name': moveName
             });
+            addSimpleAlias(simpleAliasBulkData, characterName, moveName, moveName);
             // Get all simple and macro aliases (exclude regex aliases)
-            const simpleAliasList: string[] = moveRow
+            const simpleAliasList: Uppercase<string>[] = moveRow
                 .get('Aliases')
                 .split('\n')
-                .map((a: string) => a.trim())
+                .map((a: string) => a.trim().toUpperCase())
                 .filter((alias: string) => !(alias.startsWith("/") && alias.endsWith('/')));
             for (const alias of simpleAliasList) {
                 if (alias.startsWith('MACRO_')) {
@@ -180,23 +181,13 @@ async function importMovesAndAliases(): Promise<void> {
                     if (macroLookup) {
                         const expandedValues: Uppercase<string>[] = (macroLookup.get('Value') as Uppercase<string>).split('\n') as Uppercase<string>[];
                         for (const value of expandedValues) {
-                            checkDuplicateSimpleAlias(simpleAliasBulkData as SimpleAliasData[], characterName, value, moveName);
-                            simpleAliasBulkData.push({
-                                Character: characterName,
-                                Alias: value,
-                                'Move Name': moveName
-                            });
+                            addSimpleAlias(simpleAliasBulkData, characterName, value, moveName)
                         }
                     } else {
                         throw `Found undefined macro: ${alias}`;
                     }
                 } else {
-                    checkDuplicateSimpleAlias(simpleAliasBulkData as SimpleAliasData[], characterName, alias, moveName);
-                    simpleAliasBulkData.push({
-                        Character: characterName,
-                        Alias: alias,
-                        'Move Name': moveName
-                    });
+                    addSimpleAlias(simpleAliasBulkData, characterName, alias, moveName)
                 }
             }
             // Get all regex aliases
@@ -208,7 +199,6 @@ async function importMovesAndAliases(): Promise<void> {
                 .map((p: string) => p.substring(1,p.length-1));
             for (const pattern of regexAliasList) {
                 checkDuplicateRegexAlias(regexAliasBulkData as RegexAliasData[], characterName, pattern, moveName);
-                // logger.info(`        Storing RegexAlias: ${JSON.stringify({Character: characterName, Pattern: pattern, 'Move Name': moveName})}`);
                 regexAliasBulkData.push({
                     Character: characterName,
                     Pattern: pattern,
@@ -222,6 +212,30 @@ async function importMovesAndAliases(): Promise<void> {
     await RegexAlias.bulkCreate(regexAliasBulkData, {validate: true});
     logger.info(`    Done.`)
 };
+
+function addSimpleAlias(data: SimpleAliasData[], characterName: Uppercase<string>, alias: Uppercase<string>, moveName: Uppercase<string>): void {
+    if (checkDuplicateSimpleAlias(data, characterName, alias, moveName)) {
+        data.push({
+            Character: characterName,
+            Alias: alias,
+            'Move Name': moveName
+        });
+    };
+    // Also add a no-spaces version of the alias.
+    // eg. "L BEAM" -> also add "LBEAM" as an option.
+    // There is one exception to this - "H AIRBALL" which becomes a different move
+    // "HAIRBALL" when you remove the space. Everything else should be OK.
+    if (alias.includes(" ") && alias != "H AIRBALL") {
+        const spacelessAlias: Uppercase<string> = alias.replaceAll(' ', '') as Uppercase<string>;
+        if (checkDuplicateSimpleAlias(data, characterName, spacelessAlias, moveName)) {
+            data.push({
+                Character: characterName,
+                Alias: spacelessAlias,
+                'Move Name': moveName
+            });
+        }
+    }
+}
 
 function checkDuplicateCharacter(data: CharacterRowData[], characterName: string): void {
     if (data.some((c) => c.Name == characterName)) {
@@ -241,16 +255,20 @@ function checkDuplicateMove(data: MoveRowData[], characterName: string, moveName
     };
 };
 
-function checkDuplicateSimpleAlias(data: SimpleAliasData[], characterName: string, alias: string, moveName: string): void {
-    if (data.some((a) => a.Character == characterName && a.Alias == alias)) {
+function checkDuplicateSimpleAlias(data: SimpleAliasData[], characterName: string, alias: string, moveName: string): boolean {
+    // Duplicate aliases that refer to two different moves are errors.
+    if (data.some((a) => a.Character == characterName && a.Alias == alias && a['Move Name'] != moveName)) {
         throw `Duplicate move alias detected: ${characterName}'s ${alias} (${moveName})!`;
     };
+    // If there is a duplicate within a move, it's not an error, just don't add it as a new alias.
+    // We quietly let these go because adding whitespaceless aliases would throw errors frequently otherwise.
+    return !(data.some((a) => a.Character == characterName && a.Alias == alias && a['Move Name'] == moveName));
 };
 
 // We CANNOT check whether two regex patterns overlap the same match space,
 // but we can at least check whether two patterns are exactly the same.
 function checkDuplicateRegexAlias(data: RegexAliasData[], characterName: string, pattern: string, moveName: string): void {
-    if (data.some((r) => r.Pattern == pattern)) {
+    if (data.some((r) => r.Character == characterName && r.Pattern == pattern)) {
         throw `Duplicate regex alias detected: ${characterName}'s ${pattern} (${moveName})!`;
     };
 };
