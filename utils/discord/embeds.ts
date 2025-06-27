@@ -14,7 +14,7 @@ import { logger } from "../core/logger.js";
 const embedCache = new Map<string, EmbedBuilder>();
 
 // Assemble move data into an embed object for presentation purposes
-export function buildEmbed (character: Character, move: Move): EmbedBuilder {
+export function buildEmbed(character: Character, move: Move): EmbedBuilder {
     const prettyName: string = character.get('Pretty Name') as string;
     const moveName: string = move.get('Move Name') as string;
     const cacheKey = `${prettyName} - ${moveName}`;
@@ -24,9 +24,9 @@ export function buildEmbed (character: Character, move: Move): EmbedBuilder {
         return cacheResult;
     } else {
         const fieldsArray: APIEmbedField[] = [
-            "Guard",   "Damage",    "Properties",
-            "Meter",   "On Hit",    "On Block",
-            "Startup", "Active",    "Recovery",
+            "Guard", "Damage", "Properties",
+            "Meter", "On Hit", "On Block",
+            "Startup", "Active", "Recovery",
             "Hitstun", "Blockstun", "Hitstop"
         ].map(k => ({
             "name": `**${k}**` as string,
@@ -36,7 +36,7 @@ export function buildEmbed (character: Character, move: Move): EmbedBuilder {
 
         const colour: `#{string}` = character.get('Colour') as `#{string}`;
 
-        const builder: EmbedBuilder =  new EmbedBuilder()
+        const builder: EmbedBuilder = new EmbedBuilder()
             .setColor(colour as `#{string}`)
             .setTitle(`**${cacheKey}**`)
             .addFields(fieldsArray);
@@ -67,15 +67,16 @@ export function buildEmbed (character: Character, move: Move): EmbedBuilder {
 function isValidHttpUrl(s: string): boolean {
     let url;
     try {
-      url = new URL(s);
+        url = new URL(s);
     } catch {
-      return false;  
+        return false;
     }
     return url.protocol === "http:" || url.protocol === "https:";
 }
 
 // Pre-build every single embed.
 export async function buildAllEmbeds(): Promise<void> {
+    embedCache.clear();
     const characters: Character[] = await Character.findAll();
     for (const character of characters) {
         const characterName: string = character.get('Name') as string;
