@@ -185,3 +185,8 @@ pm2 delete all
 
 After that, your instance of the bot should be able to download new data using
 the `/download` slash command.
+
+# TODO list
+
+- thumbnail and footer URL conditional formatting in the sheet
+  - copy annie's formatting to all characters
