@@ -10,7 +10,7 @@
   "scripts": {
     "clean": "git clean -x -f -e config/",
     "dev": "tsc && node --require=suppress-experimental-warnings .",
-    "deploy-commands": "tsc && node --require=suppress-experimental-warnings utils/deploy-commands.js",
+    "deploy-commands": "tsc && node --require=suppress-experimental-warnings utils/discord/deploy-commands.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
