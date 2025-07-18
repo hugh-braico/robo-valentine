@@ -21,6 +21,7 @@ import { initDatabase } from '../../utils/data/database-tables.js';
 import { initGoogleSheet } from '../data/google-sheets.js';
 import { importCharacters } from '../data/import-data.js';
 import { logger } from '../core/logger.js';
+import { exit } from 'node:process';
 
 const token = config.token;
 const clientId = config.clientId;
@@ -77,6 +78,7 @@ class PutResponse {
 
         logger.info(`Successfully reloaded ${data.length} application (/) commands.`);
 
+        exit(0);
     } catch (error) {
         console.error(error);
     }

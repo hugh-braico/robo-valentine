@@ -11,14 +11,15 @@ import { APIEmbedField, EmbedBuilder } from "discord.js";
 import { Character, Move } from "../../utils/data/database-tables.js";
 import { logger } from "../core/logger.js";
 
-const embedCache = new Map<string, EmbedBuilder>();
+const fdEmbedCache = new Map<string, EmbedBuilder>();
+const hbEmbedCache = new Map<string, EmbedBuilder>();
 
 // Assemble move data into an embed object for presentation purposes
-export function buildEmbed(character: Character, move: Move): EmbedBuilder {
+export function buildFdEmbed(character: Character, move: Move): EmbedBuilder {
     const prettyName: string = character.get('Pretty Name') as string;
     const moveName: string = move.get('Move Name') as string;
     const cacheKey = `${prettyName} - ${moveName}`;
-    const cacheResult: EmbedBuilder | undefined = embedCache.get(cacheKey);
+    const cacheResult: EmbedBuilder | undefined = fdEmbedCache.get(cacheKey);
 
     if (cacheResult) {
         return cacheResult;
@@ -58,7 +59,36 @@ export function buildEmbed(character: Character, move: Move): EmbedBuilder {
         if (footer.length > 0) {
             builder.setFooter({ text: footer });
         }
-        embedCache.set(cacheKey, builder);
+        fdEmbedCache.set(cacheKey, builder);
+        return builder;
+    }
+};
+
+// Assemble hitbox data into an embed object for presentation purposes
+export function buildHbEmbed(character: Character, move: Move): EmbedBuilder {
+    const prettyName: string = character.get('Pretty Name') as string;
+    const moveName: string = move.get('Move Name') as string;
+    const cacheKey = `${prettyName} - ${moveName}`;
+    const cacheResult: EmbedBuilder | undefined = hbEmbedCache.get(cacheKey);
+
+    if (cacheResult) {
+        return cacheResult;
+    } else {
+        const colour: `#{string}` = character.get('Colour') as `#{string}`;
+
+        const builder: EmbedBuilder = new EmbedBuilder()
+            .setColor(colour as `#{string}`)
+            .setTitle(`**${cacheKey}**`);
+
+        // Don't add an image if there isn't one defined
+        const thumbnailURL: string = move.get('Thumbnail URL') as string;
+        if (thumbnailURL.length > 0 && thumbnailURL !== '-' && isValidHttpUrl(thumbnailURL)) {
+            builder.setImage(thumbnailURL);
+        } else {
+            builder.setFooter({ text: "(No hitbox found for this move! Notify a maintainer?)" });
+        }
+
+        hbEmbedCache.set(cacheKey, builder);
         return builder;
     }
 };
@@ -76,7 +106,8 @@ function isValidHttpUrl(s: string): boolean {
 
 // Pre-build every single embed.
 export async function buildAllEmbeds(): Promise<void> {
-    embedCache.clear();
+    fdEmbedCache.clear();
+    hbEmbedCache.clear();
     const characters: Character[] = await Character.findAll();
     for (const character of characters) {
         const characterName: string = character.get('Name') as string;
@@ -87,7 +118,8 @@ export async function buildAllEmbeds(): Promise<void> {
             }
         });
         for (const move of moves) {
-            buildEmbed(character, move);
+            buildFdEmbed(character, move);
+            buildHbEmbed(character, move);
         }
     }
 }

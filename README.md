@@ -44,6 +44,9 @@ The above should yield the frame data for Filia's 5LP:
 
 The move name is case insensitive, so don't worry about capitalisation.
 
+Alternatively if you just want a big picture of the hitbox, use `/hb` to get only that image
+(it's bigger!)
+
 ## Where is the data hosted?
 
 Currently hosted as a Google sheet -
@@ -190,3 +193,4 @@ the `/download` slash command.
 
 - thumbnail and footer URL conditional formatting in the sheet
   - copy annie's formatting to all characters
+- refactor fd and hb to not have as much duplicated code

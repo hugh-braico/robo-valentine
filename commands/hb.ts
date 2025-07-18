@@ -5,7 +5,7 @@ import { generateFdOptions } from "../utils/discord/generate-fd-options.js";
 import { logger } from '../utils/core/logger.js';
 import { checkRateLimit } from "../utils/core/rate-limiter.js";
 import { logFdResultToChannel } from "../utils/discord/log-to-channel.js";
-import { buildFdEmbed } from "../utils/discord/embeds.js";
+import { buildHbEmbed } from "../utils/discord/embeds.js";
 
 // Generate character options, using the google sheet as source of truth
 const fdOptions = await generateFdOptions();
@@ -13,8 +13,8 @@ const fdOptions = await generateFdOptions();
 const fuseCache = new Map<string, Fuse<SimpleAlias>>();
 
 export const data = new SlashCommandBuilder()
-    .setName('fd')
-    .setDescription('Get frame data for Skullgirls moves')
+    .setName('hb')
+    .setDescription('Get JUST the hitbox for a Skullgirls move')
     .addStringOption(option =>
         option.setName('character')
             .setDescription('The character (e.g. Filia, Big Band)')
@@ -99,7 +99,7 @@ export async function execute(interaction: ChatInputCommandInteraction, client: 
     // const postFetchMoveTime = performance.now();
 
     // Build embed data (or fetch from embed cache if pre-built)
-    const embed: EmbedBuilder = buildFdEmbed(character, move);
+    const embed: EmbedBuilder = buildHbEmbed(character, move);
 
     // Return the reply. If we had to resort to fuzzy matching, tell the user we did that
     logger.info("  Returning reply...");
