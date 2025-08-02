@@ -178,34 +178,30 @@ pm2 delete all
 #### Start robo-valentine as a systemd service
 
 This has the advantage of being able to reboot the machine without having to
-manually start Robo-Valentine again.
-
-Update the following in `robo-valentine.service`:
-
-- `User` - username of the host machine 
-- `WorkingDirectory` - full path to where you git cloned the repo
-- update the `pm2` binary which is `/opt/bitnami/node/bin/pm2` on my setup (use
-  `which pm2` to find out where it is for you).
-- update the PATH to include the path of your `node` binary.
+manually start Robo-Valentine again. You'll need a `systemd`-based Linux
+distribution (ie. most of them these days).
 
 ```shell
-# install PM2 globally (only need to do this once)
-npm install -g pm2
+# start pm2-managed instance as usual
+pm2 start ecosystem.config.js
 
-# copy service file to system
-sudo cp robo-valentine.service /etc/systemd/system/
+# save currently running config
+pm2 save
 
-# enable robo-valentine as a service that runs on every startup
-sudo systemctl daemon-reload
-sudo systemctl enable robo-valentine.service
-sudo systemctl start robo-valentine.service
+# automatically configure currently running config as a startup service
+sudo env PATH=$PATH:/opt/bitnami/node/bin pm2 startup systemd -u bitnami --hp /home/bitnami
+```
 
-# optional: check the status of this service
-sudo systemctl status robo-valentine.service
+Replace these:
 
-# You can use the same pm2 commands as before to monitor.
-pm2 logs robo-valentine
-pm2 monit
+- `bitnami` with whatever username you chose on your host machine
+- `/home/bitnami` with your host machine's home folder
+- `/opt/bitnami/node/bin` with the directory that contains your `node` binary
+
+To undo this process and uninstall it as a startup service:
+
+```shell
+pm2 unstartup systemd
 ```
 
 ### Using your own Google Sheet
