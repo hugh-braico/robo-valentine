@@ -180,17 +180,20 @@ pm2 delete all
 This has the advantage of being able to reboot the machine without having to
 manually start Robo-Valentine again.
 
-Update `User` and `WorkingDirectory` in `robo-valentine.service`.
+Update the following in `robo-valentine.service`:
 
-Also update the path to the `pm2` binary which is `/opt/bitnami/node/bin/pm2`
-on my setup (use `which pm2` to find out where it is for you).
+- `User` - username of the host machine 
+- `WorkingDirectory` - full path to where you git cloned the repo
+- update the `pm2` binary which is `/opt/bitnami/node/bin/pm2` on my setup (use
+  `which pm2` to find out where it is for you).
+- update the PATH to include the path of your `node` binary.
 
 ```shell
 # install PM2 globally (only need to do this once)
 npm install -g pm2
 
 # copy service file to system
-cp robo-valentine.service /etc/systemd/system/
+sudo cp robo-valentine.service /etc/systemd/system/
 
 # enable robo-valentine as a service that runs on every startup
 sudo systemctl daemon-reload
