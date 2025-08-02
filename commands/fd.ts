@@ -4,7 +4,7 @@ import Fuse, { FuseResult } from 'fuse.js';
 import { generateFdOptions } from "../utils/discord/generate-fd-options.js";
 import { logger } from '../utils/core/logger.js';
 import { checkRateLimit } from "../utils/core/rate-limiter.js";
-import { logFdResultToChannel } from "../utils/discord/log-to-channel.js";
+import { logResultToChannel } from "../utils/discord/log-to-channel.js";
 import { buildFdEmbed } from "../utils/discord/embeds.js";
 
 // Generate character options, using the google sheet as source of truth
@@ -39,7 +39,7 @@ export async function execute(interaction: ChatInputCommandInteraction, client: 
     const characterName = sanitise(interaction.options.getString("character") ?? "");
     if (characterName === "") {
         await interaction.reply(`❌ You have to supply a valid character! I don't even know how you managed to do that. Please contact a maintainer to investigate.`);
-        await logFdResultToChannel(interaction, client, "❌ Character name resolved to empty string.");
+        await logResultToChannel(interaction, client, "fd", "❌ Character name resolved to empty string.");
         return;
     }
     
@@ -58,7 +58,7 @@ export async function execute(interaction: ChatInputCommandInteraction, client: 
     const moveName = sanitise((interaction.options.getString("move") ?? "").toUpperCase().trim());
     if (moveName === "") {
         await interaction.reply(`❌ You have to supply a valid move name!"`);
-        await logFdResultToChannel(interaction, client, "❌ Move name resolved to empty string.");
+        await logResultToChannel(interaction, client, "fd", "❌ Move name resolved to empty string.");
         return;
     }
 
@@ -77,7 +77,7 @@ export async function execute(interaction: ChatInputCommandInteraction, client: 
         const wikiName = prettyName.replace(" ", "_");
         const wikiUrl = `https://wiki.gbl.gg/w/Skullgirls/${wikiName}#Move_List`;
         await interaction.reply(`❗ Couldn't find a move for ${prettyName} called "${moveName}!"\nTry again, or look it up on the wiki instead:\n**<${wikiUrl}>**`);
-        await logFdResultToChannel(interaction, client, searchResult.resultString);
+        await logResultToChannel(interaction, client, "fd", searchResult.resultString);
         logger.info("Done.\n");
         return;
     }
@@ -114,7 +114,7 @@ export async function execute(interaction: ChatInputCommandInteraction, client: 
     // logger.info(`Fetching canonical move data: ${Math.round(postFetchMoveTime - postSearchTime)} ms`);
     // logger.info(`Returning reply embed:        ${Math.round(endTime - postFetchMoveTime)} ms`);
 
-    await logFdResultToChannel(interaction, client, searchResult.resultString);
+    await logResultToChannel(interaction, client, "fd", searchResult.resultString);
     logger.info("Done.\n");
 };
 

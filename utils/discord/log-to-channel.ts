@@ -34,7 +34,7 @@ async function logToChannel(interaction: ChatInputCommandInteraction, message: s
 }
 
 // Gather up all the background info about a /fd command invocation for logging purposes
-export async function logFdResultToChannel(interaction: ChatInputCommandInteraction, client: Client, result: string): Promise<void> {
+export async function logResultToChannel(interaction: ChatInputCommandInteraction, client: Client, command: string, result: string): Promise<void> {
     const logChannelId = config["activity-channel-id"] as string;
     if (logChannelId) {
         let debugString = "";
@@ -43,7 +43,7 @@ export async function logFdResultToChannel(interaction: ChatInputCommandInteract
         const safeCharacterName: string = characterName ? characterName : "(Error retrieving character name input!!)";
         const moveName: string | null = interaction.options.getString("move");
         const trimmedMoveName: string = moveName ? moveName.trim() : "";
-        debugString += `\`/fd ${safeCharacterName} ${trimmedMoveName}\`\n`;
+        debugString += `\`/${command} ${safeCharacterName} ${trimmedMoveName}\`\n`;
 
         debugString += `Result: ${result}`;
         const logChannel: TextChannel = client.channels.cache.get(logChannelId) as TextChannel;
