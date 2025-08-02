@@ -145,8 +145,8 @@ continue after you close the session:
 # install dependencies
 npm ci
 
-# install PM2 globally (only do this once)
-npm i pm2 -g
+# install PM2 globally (only need to do this once)
+npm install -g pm2
 
 # start pm2-managed instance
 pm2 start ecosystem.config.js
@@ -175,6 +175,36 @@ pm2 restart all
 pm2 delete all
 ```
 
+#### Start robo-valentine as a systemd service
+
+This has the advantage of being able to reboot the machine without having to
+manually start Robo-Valentine again.
+
+Update `User` and `WorkingDirectory` in `robo-valentine.service`.
+
+Also update the path to the `pm2` binary which is `/opt/bitnami/node/bin/pm2`
+on my setup (use `which pm2` to find out where it is for you).
+
+```shell
+# install PM2 globally (only need to do this once)
+npm install -g pm2
+
+# copy service file to system
+cp robo-valentine.service /etc/systemd/system/
+
+# enable robo-valentine as a service that runs on every startup
+sudo systemctl daemon-reload
+sudo systemctl enable robo-valentine.service
+sudo systemctl start robo-valentine.service
+
+# optional: check the status of this service
+sudo systemctl status robo-valentine.service
+
+# You can use the same pm2 commands as before to monitor.
+pm2 logs robo-valentine
+pm2 monit
+```
+
 ### Using your own Google Sheet
 
 1. Go through the same process as above to create a service account and save it
@@ -189,7 +219,7 @@ pm2 delete all
 After that, your instance of the bot should be able to download new data using
 the `/download` slash command.
 
-# TODO list
+## TODO list
 
 - thumbnail and footer URL conditional formatting in the sheet
   - copy annie's formatting to all characters
