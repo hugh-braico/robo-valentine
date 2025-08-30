@@ -2,6 +2,7 @@ import { CommandInteraction, SlashCommandBuilder } from "discord.js";
 import config from '../config/config.json' with { type: "json" };
 import { importData } from '../utils/data/import-data.js';
 import { buildAllEmbeds } from "../utils/discord/embeds.js";
+import { clearAllCache } from "../utils/discord/fuse-cache.js";
 
 export const data = new SlashCommandBuilder()
     .setName('download')
@@ -13,6 +14,7 @@ export async function execute(interaction: CommandInteraction): Promise<void> {
         try {
             await importData();
             await buildAllEmbeds();
+            clearAllCache();
             await interaction.followUp("✅ New data successfully loaded.");
         } catch (err) {
             // note: this command can only be executed by trusted users,

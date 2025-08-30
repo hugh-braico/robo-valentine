@@ -1,16 +1,15 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder, EmbedBuilder, User, Client } from "discord.js";
 import { Character, Move, RegexAlias, SimpleAlias } from '../utils/data/database-tables.js';
-import Fuse, { FuseResult } from 'fuse.js';
+import { FuseResult } from 'fuse.js';
 import { generateFdOptions } from "../utils/discord/generate-fd-options.js";
 import { logger } from '../utils/core/logger.js';
 import { checkRateLimit } from "../utils/core/rate-limiter.js";
 import { logResultToChannel } from "../utils/discord/log-to-channel.js";
 import { buildHbEmbed } from "../utils/discord/embeds.js";
+import { getFuse } from "../utils/discord/fuse-cache.js";
 
 // Generate character options, using the google sheet as source of truth
 const fdOptions = await generateFdOptions();
-
-const fuseCache = new Map<string, Fuse<SimpleAlias>>();
 
 export const data = new SlashCommandBuilder()
     .setName('hb')
@@ -249,33 +248,6 @@ async function fuzzyAliasSearch(characterName: string, moveName: string): Promis
         } as SearchResult;
     } else {
         return null;
-    }
-}
-
-// Gets a Fuse object for all of a character's simple aliases, for fuzzy matching.
-async function getFuse(characterName: string): Promise<Fuse<SimpleAlias>> {
-    const cacheResult: Fuse<SimpleAlias> | undefined = fuseCache.get(characterName);
-    if (cacheResult) {
-        return cacheResult;
-    } else {
-        const simpleAliases = await SimpleAlias.findAll({
-            attributes: [
-                'Alias',
-                'Move Name'
-            ],
-            where: { Character: characterName }
-        });
-        // Mostly using default Fuse.js options https://www.fusejs.io/api/options.html
-        const fuseOptions = {
-            ignoreDiacritics: true,
-            shouldSort: true,
-            keys: [
-                "Alias"
-            ]
-        };
-        const fuse = new Fuse(simpleAliases, fuseOptions);
-        fuseCache.set(characterName, fuse);
-        return fuse;
     }
 }
 
