@@ -1,6 +1,6 @@
 # Robo-Valentine 💉
 
-![A picture of a robotic Valentine from Skullgirls.](./images/robo_valentine.png)
+<img src="./images/robo_valentine.png" width=100>
 
 ![icons](https://skillicons.dev/icons?i=ts,discordjs,aws)
 
