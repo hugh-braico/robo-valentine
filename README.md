@@ -13,7 +13,7 @@ Written in TypeScript with discord.js. Currently hosted on Amazon Lightsail.
 
 Art by [ComicBookGuy](https://x.com/comicbookguy209).
 
-## New shiny improvements
+## Improvements over fdbot
 
 - Robo-Val is fully public for anyone to access, and 100% open source.
 - Robo-Val still works as a traditional server bot, but you can also install her
