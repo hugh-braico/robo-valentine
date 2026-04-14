@@ -1,6 +1,6 @@
 # Robo-Valentine 💉
 
-<img src="./images/robo_valentine.png" width=100>
+<img src="./images/robo_valentine.png" width=150>
 
 ![icons](https://skillicons.dev/icons?i=ts,discordjs,aws)
 
