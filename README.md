@@ -11,7 +11,7 @@ hopeful successor to Liam's Robo-Fortune bot (aka FDBot).
 
 Written in TypeScript with discord.js. Currently hosted on Amazon Lightsail.
 
-Art by [ComicBookGuy](https://x.com/comicbookguy209).
+Art by [ComicBookGuy](https://comicbookguydraws.carrd.co/).
 
 ## Improvements over fdbot
 
