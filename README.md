@@ -225,4 +225,5 @@ the `/download` slash command.
 - thumbnail and footer URL conditional formatting in the sheet
   - copy annie's formatting to all characters
 - refactor fd and hb to not have as much duplicated code
+- Auto deploy
 - Automatic backups via GHA
