@@ -53,11 +53,13 @@ Currently hosted as a Google sheet -
 [Read-only link to bot data spreadsheet](https://docs.google.com/spreadsheets/d/1WinMvGxS65707Uh2C0-VmDwXVTdav-DEI29j4OyJWXw/edit?usp=sharing).
 If you want edit access, contact SeaJay.
 
-If you're reading this in the future and the link above is dead, there are Excel
-backups available in the `backups/` folder in this repository. You can download
-one of those and upload it as a new Google Sheet, then point your bot towards
-that (see "Using your own Google Sheet" below). I also encourage you to make
-your own offline backups of the current live version.
+A Google Sheet was chosen to be easily editable by collaborators (especially
+less-technical ones), but it is susceptible to link rot. If you're reading this
+in the future and the link above is dead, there are Excel backups available in
+the `backups/` folder in this repository. You can download one of those and
+upload it as a new Google Sheet, then point your bot towards that (see "Using
+your own Google Sheet" below). I also encourage you to make your own offline
+backups of the current live version.
 
 ## Info for developers
 
@@ -223,3 +225,4 @@ the `/download` slash command.
 - thumbnail and footer URL conditional formatting in the sheet
   - copy annie's formatting to all characters
 - refactor fd and hb to not have as much duplicated code
+- Automatic backups via GHA
