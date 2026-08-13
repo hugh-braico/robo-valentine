@@ -75,7 +75,7 @@ export async function execute(interaction: ChatInputCommandInteraction, client: 
         const prettyName = character.get('Pretty Name') as string;
         const wikiName = prettyName.replace(" ", "_");
         const wikiUrl = `https://mizuumi.wiki/w/Skullgirls/${wikiName}#Move_List`;
-        await interaction.reply(`❗ Couldn't find a move for ${prettyName} called "${moveName}"!\nTry again, or look it up on the wiki instead:\n**<${wikiUrl}>**`);
+        await interaction.reply(`❗ Couldn't find a move for ${prettyName} called "${moveName}"...\nTry again, or look it up on the wiki instead:\n**<${wikiUrl}>**`);
         await logResultToChannel(interaction, client, "hb", searchResult.resultString);
         logger.info("Done.\n");
         return;
