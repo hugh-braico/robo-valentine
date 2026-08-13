@@ -74,8 +74,8 @@ export async function execute(interaction: ChatInputCommandInteraction, client: 
         logger.info("  Returning failure reply...");
         const prettyName = character.get('Pretty Name') as string;
         const wikiName = prettyName.replace(" ", "_");
-        const wikiUrl = `https://wiki.gbl.gg/w/Skullgirls/${wikiName}#Move_List`;
-        await interaction.reply(`❗ Couldn't find a move for ${prettyName} called "${moveName}!"\nTry again, or look it up on the wiki instead:\n**<${wikiUrl}>**`);
+        const wikiUrl = `https://mizuumi.wiki/w/Skullgirls/${wikiName}#Move_List`;
+        await interaction.reply(`❗ Couldn't find a move for ${prettyName} called "${moveName}"!\nTry again, or look it up on the wiki instead:\n**<${wikiUrl}>**`);
         await logResultToChannel(interaction, client, "hb", searchResult.resultString);
         logger.info("Done.\n");
         return;
@@ -103,7 +103,7 @@ export async function execute(interaction: ChatInputCommandInteraction, client: 
     // Return the reply. If we had to resort to fuzzy matching, tell the user we did that
     logger.info("  Returning reply...");
     if (searchResult.strategy == SearchStrategy.Fuzzy) {
-        await interaction.reply({content: "❓ I'm not sure I know what that move is, but here's my best guess:", embeds: [embed]});
+        await interaction.reply({content: `❓ I'm not sure I know what that move is, but here's my best guess.\nIf this isn't right, try again or use the wiki:\n**<${wikiUrl}>**`, embeds: [embed]});
     } else {
         await interaction.reply({embeds: [embed]});
     }
