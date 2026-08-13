@@ -69,12 +69,12 @@ export async function execute(interaction: ChatInputCommandInteraction, client: 
     
     // If unable to find the move, throw up an error reply
     // Use the Mizuumi wiki as a fallback resource, make the user look it up themselves
+    const prettyName = character.get('Pretty Name') as string;
+    const wikiName = prettyName.replace(" ", "_");
+    const wikiUrl = `https://mizuumi.wiki/w/Skullgirls/${wikiName}#Move_List`;
     if (!searchResult.canonicalName) {
         logger.info(`    ${searchResult.resultString}`);
         logger.info("  Returning failure reply...");
-        const prettyName = character.get('Pretty Name') as string;
-        const wikiName = prettyName.replace(" ", "_");
-        const wikiUrl = `https://mizuumi.wiki/w/Skullgirls/${wikiName}#Move_List`;
         await interaction.reply(`❗ Couldn't find a move for ${prettyName} called "${moveName}"...\nTry again, or look it up on the wiki instead:\n**<${wikiUrl}>**`);
         await logResultToChannel(interaction, client, "fd", searchResult.resultString);
         logger.info("Done.\n");
